@@ -1,0 +1,16 @@
+//
+// Created by xos81802 on 20/12/2019.
+//
+#pragma once
+
+#include "gtest/gtest.h"
+
+#define fixture(filename) "@CMAKE_SOURCE_DIR@/tests/fixtures/"#filename""
+
+//namespace tests {
+//inline std::string fixture(const std::string & filename){
+//    std::string name ="@CMAKE_SOURCE_DIR@/tests/fixtures/" + filename;
+//    std::cout << "loading :: " << name << std::endl;
+//    return name;
+//}
+//}
