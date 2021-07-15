@@ -37,7 +37,9 @@ addToIt(FileClass)
 addToIt(Coords)
 addToIt(utils)
 addToIt(PofRData)
+addToIt(IofQData)
 addToIt(Bead)
+
 
 set(TEST_OBJ ${CMAKE_PROJECT_NAME}_test)
 add_executable(${TEST_OBJ} ${CPP_FILES})

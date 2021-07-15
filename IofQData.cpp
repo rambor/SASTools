@@ -36,6 +36,7 @@ void IofQData::extractData() {
         boost::regex rgFormat("reci rg", boost::regex::icase);
         boost::regex errorFormat("ERROR", boost::regex::icase);
         boost::regex qmaxFormat("(qmax)|(QMAX)", boost::regex::icase);
+        boost::regex dmaxFormat("(dmax)|(DMAX)", boost::regex::icase);
         boost::regex izeroFormat("reci i\\(0\\)", boost::regex::icase);
         boost::regex porodFormat("POROD", boost::regex::icase);
 
@@ -62,10 +63,30 @@ void IofQData::extractData() {
                 y_data.push_back(std::strtof(tempLine[1].c_str(), nullptr));
                 sigma_data.push_back(std::strtof(tempLine[2].c_str(), nullptr));
 
+                if ((tempLine.size() > 3) && boost::regex_search(tempLine.at(3), dataFormat)){ // assume fourth column is icalc from IFT
+                    y_calc.push_back(std::strtof(tempLine[3].c_str(), nullptr));
+                }
+
                 total_data_points++;
 
             } else if (boost::regex_search(line, qmaxFormat)) {
-                this->qmax = std::strtof(tempLine[6].c_str(), nullptr);
+
+                int totalIn = tempLine.size();
+                for(int i=0; i<totalIn; i++){
+                    if (tempLine[i] == ":") {
+                        this->qmax = std::strtof(tempLine[i+1].c_str(), nullptr);
+                        break;
+                    }
+                }
+
+            } else if (boost::regex_search(line, dmaxFormat)) {
+               int totalIn = tempLine.size();
+                for(int i=0; i<totalIn; i++){
+                    if (tempLine[i] == ":") {
+                        this->dmax = std::strtof(tempLine[i+1].c_str(), nullptr);
+                        break;
+                    }
+                }
             } else if (boost::regex_search(line, volFormat)) {
                 if (tempLine[3] == ":") {
                     this->volume = std::strtof(tempLine[4].c_str(), nullptr);
@@ -85,8 +106,8 @@ void IofQData::extractData() {
             }
         }
 
-        qmin = y_data[0];
-        qmax = y_data[total_data_points-1];
+        qmin = x_data[0];
+        qmax = x_data[total_data_points-1];
     }
 }
 
@@ -117,8 +138,13 @@ void IofQData::makeWorkingSet(){
     const auto pQ = x_data.data();
 
     unsigned int ns_start = ((pQ[0] > deltaQ)) ? 2 : 1;
+    float half_width = 0.5f*deltaQ;
 
-    std::vector<unsigned int> indices((unsigned int)std::ceil(total_data_points/(float)ns)*2);
+
+    // throw exception or warning
+
+    int redundancy = 2;
+    std::vector<unsigned int> indices((unsigned int)std::ceil(total_data_points/(float)ns)*redundancy);
     std::fill(indices.begin(), indices.end(), 0);
 
     // making terrible assumptions on the data - should really come up with a better algorithm that scales with actual uncertainties
@@ -127,59 +153,67 @@ void IofQData::makeWorkingSet(){
     std::vector<unsigned int> pointsPerBin(ns+1);
     std::vector<unsigned int> selectedIndices;
 
-    int basepts = 7;
-    int totalInWS=0;
-    int totalInChifree=0;
+    int basepts = 4;
     auto maxPts = (int)(4.7*basepts);
 
     for(unsigned int n=1; n<=ns; n++){
         float nx = n*n*n;
         pointsPerBin[n] = (unsigned int)std::floor(nx/(kc3 + nx)*(maxPts-basepts) + basepts);
+        std::cout << "PTS per Bin " << n << " " << pointsPerBin[n] << std::endl;
     }
 
-    intensities.reserve(total_data_points);
+    intensities.reserve(total_data_points); // everything not in use is cross-validated set
+    for(int i=0; i<total_data_points; i++){
+        intensities[i] = false;
+    }
 
     for(unsigned int n=ns_start; n<=ns; n++){ // iterate over the shannon indices
 
-        float endQ = n*deltaQ; //upper limit of the shannon box at index
-        unsigned int addAt = 0;
+        float startq = (n==1) ? 0 : (deltaQ*n - half_width);
+        float endQ = deltaQ*n + half_width;
+
+        indices.clear();
+        bool sample = false;
 
         for(unsigned int i=startIndex; i < total_data_points; i++){
 
-            if(pQ[i] > endQ){
-                // pick
-                std::shuffle(indices.begin(), indices.begin()+addAt, gen);
-                auto select = &pointsPerBin[n];
-
-                if (*select > addAt){ // add half - incase too few points in shannon box
-                    auto stophalf = (unsigned int)std::ceil(addAt/2);
-                    for(unsigned int s=0;s<stophalf; s++){
-                        selectedIndices.push_back(indices[s]);
-                        intensities[indices[s]]="W";
-                        totalInWS++;
-                    }
-                } else {
-                    for(unsigned int s=0;s<*select; s++){
-                        selectedIndices.push_back(indices[s]);
-                        intensities[indices[s]]="W";
-                        totalInWS++;
-                    }
-                }
-
-                // find closest points that adjoin the Shannon point
-                intensities[i-1]="X";
-                intensities[i]="X";
-                totalInChifree += 2;
-                startIndex = i;
-                break; // break out and set up for next shannon window
+            // get points closest to Shannon number
+            if (pQ[i] > startq && pQ[i] <= endQ){
+                indices.push_back(i);
+                sample = true;
             }
-            indices[addAt] = i; // add indices within the q limits of shannon box
-            addAt++;
+
+            if (pQ[i] > endQ){
+                startIndex = i;
+                break;
+            }
+        }
+
+        if (sample){
+            std::shuffle(indices.begin(), indices.end(), gen);
+            auto select = &pointsPerBin[n];
+            int totalIn = indices.size();
+
+            if (*select > totalIn){ // add half - incase too few points in shannon box
+                auto stophalf = (unsigned int)std::ceil(totalIn/2);
+                std::sort(indices.begin(), indices.begin()+stophalf);
+                for(unsigned int s=0;s<stophalf; s++){
+                    selectedIndices.push_back(indices[s]);
+                    intensities[indices[s]] = true;
+                }
+            } else {
+                std::sort(indices.begin(), indices.begin()+*select);
+                for(unsigned int s=0;s<*select; s++){
+                    selectedIndices.push_back(indices[s]);
+                    intensities[indices[s]] = true;
+                }
+            }
         }
     }
 
     for(auto & value : selectedIndices){
         workingSet.emplace_back(Datum(x_data[value], y_data[value], sigma_data[value], value));
+        workingSetSmoothed.emplace_back(Datum(x_data[value], y_calc[value], sigma_data[value], value));
     }
 
     auto workingSetSize = (unsigned int)workingSet.size();
@@ -265,5 +299,17 @@ void IofQData::calculateShannonInformation() {
     shannon_bins = (float)ceil(dmax*qmax/M_PI)*1.0f;  // shannon bins
 
     // create workingset for analysis
+}
+
+const std::vector<float> &IofQData::getQvalues() const {
+    return qvalues;
+}
+
+const std::vector<Datum> &IofQData::getWorkingSet() const {
+    return workingSet;
+}
+
+const std::vector<Datum> &IofQData::getWorkingSetSmoothed() const {
+    return workingSetSmoothed;
 }
 

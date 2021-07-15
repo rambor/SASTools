@@ -198,8 +198,10 @@ void dmaxFromPDB(std::vector <float> & x,
     float * pY = y.data();
     float * pZ = z.data();
     float pXValue, pYValue, pZValue;
-    for (unsigned int n=0; n < numAtoms; n++) {
 
+
+    for (unsigned int n=0; n < numAtoms; n++) {
+        //populate array
         centeredX[n] = pX[n] - centeringX;
         centeredY[n] = pY[n] - centeringY;
         centeredZ[n] = pZ[n] - centeringZ;
@@ -2498,4 +2500,49 @@ std::string formatNumber(float number, int decimals) {
 void printAtomLine(FILE * pFile, unsigned int index, std::string chain, unsigned int residue_index, float x, float y, float z){
     std::string resid = std::to_string(residue_index);
     fprintf(pFile, "%-6s%5i %4s %3s %1s%4s    %8.3f%8.3f%8.3f  1.00100.00\n", "ATOM", index," CA ", "ALA", chain.c_str(), resid.c_str(), x, y, z );
+}
+
+DminType getDminValues(std::vector<vector3> & centered_coordinates){
+
+    std::vector<float> dmin;
+    const vector3 * pVec = centered_coordinates.data();
+    int total_centered_coordinates = centered_coordinates.size();
+
+    float dminSum = 0.0f;
+    float dminSumSquare = 0.0f;
+    for (unsigned int n=0; n < (total_centered_coordinates-1); n++) {
+        const vector3 &pVec1 = *(pVec + n);
+        float tempDmin = FLT_MAX;
+
+        for (unsigned int m=0; m < n; m++) {
+            const vector3 &pVec2 = *(pVec + m);
+            float dis = (pVec1 - pVec2).length();
+            if (dis < tempDmin) {
+                tempDmin = dis;
+            }
+        }
+
+        for (unsigned int m=n+1; m < total_centered_coordinates; m++) {
+            const vector3 &pVec2 = *(pVec + m);
+            float dis = (pVec1 - pVec2).length();
+            if (dis < tempDmin) {
+                tempDmin = dis;
+            }
+        }
+
+        dmin.emplace_back(tempDmin);
+        dminSum += tempDmin;
+        dminSumSquare += tempDmin*tempDmin;
+    }
+
+    std::sort(dmin.begin(), dmin.end());
+
+    DminType dmins;
+
+    dmins.dmin_supremum = dmin[dmin.size()-1];
+    dmins.dmin_infimum = dmin[0];
+    dmins.stdev_dmin = std::sqrt(dminSumSquare/(float)dmin.size() - dminSum*dminSum/(float)(dmin.size()*dmin.size()));
+    dmins.average_dmin = dminSum/(float)dmin.size();
+
+    return dmins;
 }

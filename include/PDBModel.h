@@ -36,8 +36,8 @@ class PDBModel : public Model {
     bool discardWaters=false, ifRNA = false, found_edge_radius=false;
     float edge_radius=0.0;
     unsigned int totalAtoms, totalResidues, waterCount, watersPerResidue, totalWatersInExcludedVolume;
-    float volume=0.0f, dmax, fractionalWaterOccupancy;
-    std::vector<float> occupancies, atomVolume, atomicRadii;
+    float volume=0.0f, dmax, fractionalWaterOccupancy, smax; // smax is the radius of the sphere than encloses centered object
+    std::vector<float> occupancies, atomVolume, atomicRadii, atomNumbers;
     vector3 centeringVector;
 
 public:
@@ -68,6 +68,7 @@ public:
             return *this;
 
         atomType = model.atomType;
+
         resi = model.resi;
         trimmedAtomType = model.trimmedAtomType;
         trimmedResi = model.trimmedResi;
@@ -77,7 +78,8 @@ public:
         ifRNA = model.ifRNA;
         found_edge_radius = model.found_edge_radius;
         edge_radius = model.edge_radius;
-        
+
+
         totalAtoms = model.totalAtoms;
         totalResidues = model.totalResidues;
         waterCount = model.waterCount;
@@ -91,6 +93,7 @@ public:
         occupancies = model.occupancies;
         atomVolume = model.atomVolume;
         atomicRadii = model.atomicRadii;
+        atomNumbers = model.atomNumbers;
 
         centeringVector = vector3(model.centeringVector);
 
@@ -125,6 +128,13 @@ public:
         model.centeredZ= nullptr;
     }
 
+//    std::vector < std::string > atomType, resi, trimmedAtomType, trimmedResi, chainID, waterLines;
+//    std::set<std::string> segIDresID, uniqAtomTypes;
+//    std::map<std::string, std::string> residToResidue;
+//    std::map<std::string, unsigned int> alternateAtoms;
+//    std::vector < float > atomNumbers;
+//    std::vector < float > electronsPerAtom;
+
     // move constructor
     PDBModel (PDBModel && model) noexcept :
 
@@ -149,6 +159,7 @@ public:
             occupancies(model.occupancies),
             atomVolume (model.atomVolume),
             atomicRadii (model.atomicRadii),
+            atomNumbers (model.atomNumbers),
             centeringVector(vector3(model.centeringVector))
     {
 
@@ -180,7 +191,7 @@ public:
 
     std::string getFileExtension() override {return base_file->getFileExtension();}
 
-    float residueToVolume(std::string atom_type, std::string residue, float * vdwradius);
+    float residueToVolume(std::string atom_type, std::string residue, float * vdwradius, float * atomic_number);
     void extractCoordinates() override;
 
     unsigned int getTotalCoordinates() override { return totalAtoms;}
@@ -221,6 +232,13 @@ public:
     float getAtomicRadius(int index){return atomicRadii[index];}
 
     unsigned int getTotalUniqueAtoms(){ return uniqAtomTypes.size();}
+
+    void setSMax();
+    float getSMax(){ return smax;}
+
+    void convertAtomTypes(int index_of_atom_type);
+
+    float getAtomicNumberByIndex(int index){ return atomNumbers[index];}
 };
 
 

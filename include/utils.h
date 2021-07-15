@@ -40,6 +40,13 @@ typedef std::vector< std::complex<float> > vector1DC;
 typedef std::vector< vector1DC> vector2DC;
 typedef std::vector< vector2DC> vector3DC;
 
+struct DminType {
+    float dmin_supremum;
+    float dmin_infimum;
+    float stdev_dmin;
+    float average_dmin;
+};
+
 float asf ( unsigned int atomicNumber, float q);
 
 float assignOccupancy (  std::string  * neighboringAtom, std::string * neighboringResi);
@@ -96,6 +103,6 @@ std::string formatNumber(unsigned int number);
 std::string formatNumber(float number, int decimals = 2);
 void printAtomLine(FILE * pFile, unsigned int index, std::string chain, unsigned int residue_index, float x, float y, float z);
 
-
+DminType getDminValues(std::vector<vector3> & centered_coordinates);
 
 #endif //PDBTOOLS_UTILS_H

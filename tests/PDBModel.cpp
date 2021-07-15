@@ -46,6 +46,11 @@ TEST_F(PDBModelTests, checkDmax){
     EXPECT_NEAR(p4p6RNAModel.getDmax(), 113, 0.7);
 }
 
+TEST_F(PDBModelTests, checkSmax){
+    EXPECT_GT(bsaModel.getSMax(), 1);
+    EXPECT_GT(p4p6RNAModel.getSMax(), 1);
+}
+
 TEST_F(PDBModelTests, getOriginalDataTest){
     auto total = bsaModel.getTotalCoordinates();
     auto vector = bsaModel.getCenteringVector();

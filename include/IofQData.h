@@ -38,10 +38,18 @@
 class IofQData : public DataBase {
     bool convert = false;
     std::vector<float> sinc_qr;
-    std::vector<std::string> intensities;
+    std::vector<bool> intensities;
+    std::vector<bool> useMe;
     std::vector<Datum> workingSet;
+    std::vector<Datum> workingSetSmoothed;
+public:
+    const std::vector<Datum> &getWorkingSet() const;
+
+private:
     std::vector<float> invVarianceWorkingSet;
     std::vector <float> qvalues;
+public:
+    const std::vector<float> &getQvalues() const;
 
 public:
 
@@ -78,6 +86,9 @@ public:
 
     void makeWorkingSet();
 
+    double getDmax(){ return dmax;}
+
+    const std::vector<Datum> &getWorkingSetSmoothed() const;
 };
 
 

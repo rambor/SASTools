@@ -31,7 +31,7 @@ protected:
     Score * score;
 
     std::string x_tag, y_tag;
-    std::vector<float> x_data, y_data, sigma_data;
+    std::vector<float> x_data, y_data, sigma_data, y_calc;
     float ns_dmax, dmax, shannon_bins, weight=1.0;
     float bin_width, invBinSize;
 
