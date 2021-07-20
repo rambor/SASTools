@@ -2024,6 +2024,9 @@ void PDBModel::writeCenteredCoordinatesToFile(std::string name) {
 }
 
 
+/*
+ * smax is the longest radial distance of the macromolecule from its center
+ */
 void PDBModel::setSMax(){
 
     float pXValue, pYValue, pZValue, temp;
