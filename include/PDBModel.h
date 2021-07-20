@@ -234,6 +234,10 @@ public:
     unsigned int getTotalUniqueAtoms(){ return uniqAtomTypes.size();}
 
     void setSMax();
+
+    /*
+     * smax is the longest radial distance of the macromolecule from its center
+     */
     float getSMax(){ return smax;}
 
     void convertAtomTypes(int index_of_atom_type);
