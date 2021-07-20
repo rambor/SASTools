@@ -65,6 +65,8 @@ public:
     inline float dot(const vector3& b) const { return _mm_cvtss_f32(_mm_dp_ps(mmvalue, b.mmvalue, 0x71)); }
     // length of the vector
     inline float length() const { return _mm_cvtss_f32(_mm_sqrt_ss(_mm_dp_ps(mmvalue, mmvalue, 0x71))); }
+    // squared length of the vector (added by Rob Rambo July 2021)
+    inline float sqlength() const { return _mm_cvtss_f32(_mm_dp_ps(mmvalue, mmvalue, 0x71)); }
     // 1/length() of the vector
     inline float rlength() const { return _mm_cvtss_f32(_mm_rsqrt_ss(_mm_dp_ps(mmvalue, mmvalue, 0x71))); }
     // returns the vector scaled to unit length
