@@ -2332,7 +2332,7 @@ float kurtosis(float * residuals, int residualsSize){
     float fourth_x = 0.0f;
     float third_x = 0.0f;
     float x = 0.0f;
-    float x_value, x_squared, variance;
+    float x_value, variance;
     float divisor = 1.0f/residualsSize;
     float k=0.0f;
 
