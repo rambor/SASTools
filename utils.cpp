@@ -2506,7 +2506,7 @@ DminType getDminValues(std::vector<vector3> & centered_coordinates){
 
     std::vector<float> dmin;
     const vector3 * pVec = centered_coordinates.data();
-    int total_centered_coordinates = centered_coordinates.size();
+    unsigned int total_centered_coordinates = centered_coordinates.size();
 
     float dminSum = 0.0f;
     float dminSumSquare = 0.0f;
