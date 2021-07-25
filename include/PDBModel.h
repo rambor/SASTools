@@ -246,4 +246,4 @@ public:
 };
 
 
-#endif //PDBTOOLS_PDBMODEL_H
+#endif //SASTOOLS_PDBMODEL_H

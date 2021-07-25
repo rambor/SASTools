@@ -18,59 +18,65 @@
 #define _aligned_malloc(x,y) malloc(x)
 #define _aligned_free(x) free(x)
 
-#include <smmintrin.h>
+#include <simde-no-tests-master/simde-arch.h>
+#include <simde-no-tests-master/simde-common.h>
+#include <simde-no-tests-master/x86/sse4.1.h>
 
+// #include <smmintrin.h>
 // Simple vector class
 class _MM_ALIGN16 vector3 {
 public:
     // constructors
-    inline vector3() : mmvalue(_mm_setzero_ps()) {}
-    inline vector3(float x, float y, float z) : mmvalue(_mm_set_ps(0, z, y, x)) {}
-    inline vector3(__m128 m) : mmvalue(m) {}
+
+    inline vector3() : mmvalue(simde_mm_set_ps(0, 0, 0, 0)) {}
+    inline vector3(float x, float y, float z) : mmvalue(simde_mm_set_ps(0, z, y, x)) {}
+    inline vector3(simde__m128 m) : mmvalue(m) {}
 
     // arithmetic operators with vector3
-    inline vector3 operator+(const vector3& b) const { return _mm_add_ps(mmvalue, b.mmvalue); }
-    inline vector3 operator-(const vector3& b) const { return _mm_sub_ps(mmvalue, b.mmvalue); }
-    inline vector3 operator*(const vector3& b) const { return _mm_mul_ps(mmvalue, b.mmvalue); }
-    inline vector3 operator/(const vector3& b) const { return _mm_div_ps(mmvalue, b.mmvalue); }
+    inline vector3 operator+(const vector3& b) const { return simde_mm_add_ps(mmvalue, b.mmvalue); }
+    inline vector3 operator-(const vector3& b) const { return simde_mm_sub_ps(mmvalue, b.mmvalue); }
+    inline vector3 operator*(const vector3& b) const { return simde_mm_mul_ps(mmvalue, b.mmvalue); }
+    inline vector3 operator/(const vector3& b) const { return simde_mm_div_ps(mmvalue, b.mmvalue); }
 
     // op= operators
-    inline vector3& operator+=(const vector3& b) { mmvalue = _mm_add_ps(mmvalue, b.mmvalue); return *this; }
-    inline vector3& operator-=(const vector3& b) { mmvalue = _mm_sub_ps(mmvalue, b.mmvalue); return *this; }
-    inline vector3& operator*=(const vector3& b) { mmvalue = _mm_mul_ps(mmvalue, b.mmvalue); return *this; }
-    inline vector3& operator/=(const vector3& b) { mmvalue = _mm_div_ps(mmvalue, b.mmvalue); return *this; }
+    inline vector3& operator+=(const vector3& b) { mmvalue = simde_mm_add_ps(mmvalue, b.mmvalue); return *this; }
+    inline vector3& operator-=(const vector3& b) { mmvalue = simde_mm_sub_ps(mmvalue, b.mmvalue); return *this; }
+    inline vector3& operator*=(const vector3& b) { mmvalue = simde_mm_mul_ps(mmvalue, b.mmvalue); return *this; }
+    inline vector3& operator/=(const vector3& b) { mmvalue = simde_mm_div_ps(mmvalue, b.mmvalue); return *this; }
 
     // arithmetic operators with float
-    inline vector3 operator+(float b) const { return _mm_add_ps(mmvalue, _mm_set1_ps(b)); }
-    inline vector3 operator-(float b) const { return _mm_sub_ps(mmvalue, _mm_set1_ps(b)); }
-    inline vector3 operator*(float b) const { return _mm_mul_ps(mmvalue, _mm_set1_ps(b)); }
-    inline vector3 operator/(float b) const { return _mm_div_ps(mmvalue, _mm_set1_ps(b)); }
+    inline vector3 operator+(float b) const { return simde_mm_add_ps(mmvalue, simde_mm_set1_ps(b)); }
+    inline vector3 operator-(float b) const { return simde_mm_sub_ps(mmvalue, simde_mm_set1_ps(b)); }
+    inline vector3 operator*(float b) const { return simde_mm_mul_ps(mmvalue, simde_mm_set1_ps(b)); }
+    inline vector3 operator/(float b) const { return simde_mm_div_ps(mmvalue, simde_mm_set1_ps(b)); }
 
     // op= operators with float
-    inline vector3& operator+=(float b) { mmvalue = _mm_add_ps(mmvalue, _mm_set1_ps(b)); return *this; }
-    inline vector3& operator-=(float b) { mmvalue = _mm_sub_ps(mmvalue, _mm_set1_ps(b)); return *this; }
-    inline vector3& operator*=(float b) { mmvalue = _mm_mul_ps(mmvalue, _mm_set1_ps(b)); return *this; }
-    inline vector3& operator/=(float b) { mmvalue = _mm_div_ps(mmvalue, _mm_set1_ps(b)); return *this; }
+    inline vector3& operator+=(float b) { mmvalue = simde_mm_add_ps(mmvalue, simde_mm_set1_ps(b)); return *this; }
+    inline vector3& operator-=(float b) { mmvalue = simde_mm_sub_ps(mmvalue, simde_mm_set1_ps(b)); return *this; }
+    inline vector3& operator*=(float b) { mmvalue = simde_mm_mul_ps(mmvalue, simde_mm_set1_ps(b)); return *this; }
+    inline vector3& operator/=(float b) { mmvalue = simde_mm_div_ps(mmvalue, simde_mm_set1_ps(b)); return *this; }
 
     // cross product
-    inline vector3 cross(const vector3& b) const
-    {
-        return _mm_sub_ps(
-                _mm_mul_ps(_mm_shuffle_ps(mmvalue, mmvalue, _MM_SHUFFLE(3, 0, 2, 1)), _mm_shuffle_ps(b.mmvalue, b.mmvalue, _MM_SHUFFLE(3, 1, 0, 2))),
-                _mm_mul_ps(_mm_shuffle_ps(mmvalue, mmvalue, _MM_SHUFFLE(3, 1, 0, 2)), _mm_shuffle_ps(b.mmvalue, b.mmvalue, _MM_SHUFFLE(3, 0, 2, 1)))
-        );
-    }
+//    inline vector3 cross(const vector3& b) const
+//    {
+//        return simde_mm_sub_ps(
+//                simde_mm_mul_ps(simde_mm_shuffle_ps(mmvalue, mmvalue, SIMDE_MM_SHUFFLE(3, 0, 2, 1)),
+//                                simde_mm_shuffle_ps(b.mmvalue, b.mmvalue, SIMDE_MM_SHUFFLE(3, 1, 0, 2))),
+//                simde_mm_mul_ps(simde_mm_shuffle_ps(mmvalue, mmvalue, SIMDE_MM_SHUFFLE(3, 1, 0, 2)),
+//                                simde_mm_shuffle_ps(b.mmvalue, b.mmvalue, SIMDE_MM_SHUFFLE(3, 0, 2, 1)))
+//        );
+//    }
 
     // dot product with another vector
-    inline float dot(const vector3& b) const { return _mm_cvtss_f32(_mm_dp_ps(mmvalue, b.mmvalue, 0x71)); }
+    inline float dot(const vector3& b) const { return simde_mm_cvtss_f32(simde_mm_dp_ps(mmvalue, b.mmvalue, 0x71)); }
     // length of the vector
-    inline float length() const { return _mm_cvtss_f32(_mm_sqrt_ss(_mm_dp_ps(mmvalue, mmvalue, 0x71))); }
+    inline float length() const { return simde_mm_cvtss_f32(simde_mm_sqrt_ss(simde_mm_dp_ps(mmvalue, mmvalue, 0x71))); }
     // squared length of the vector (added by Rob Rambo July 2021)
-    inline float sqlength() const { return _mm_cvtss_f32(_mm_dp_ps(mmvalue, mmvalue, 0x71)); }
+    inline float sqlength() const { return simde_mm_cvtss_f32(simde_mm_dp_ps(mmvalue, mmvalue, 0x71)); }
     // 1/length() of the vector
-    inline float rlength() const { return _mm_cvtss_f32(_mm_rsqrt_ss(_mm_dp_ps(mmvalue, mmvalue, 0x71))); }
+    inline float rlength() const { return simde_mm_cvtss_f32(simde_mm_rsqrt_ss(simde_mm_dp_ps(mmvalue, mmvalue, 0x71))); }
     // returns the vector scaled to unit length
-    inline vector3 normalize() const { return _mm_mul_ps(mmvalue, _mm_rsqrt_ps(_mm_dp_ps(mmvalue, mmvalue, 0x7F))); }
+    inline vector3 normalize() const { return simde_mm_mul_ps(mmvalue, simde_mm_rsqrt_ps(simde_mm_dp_ps(mmvalue, mmvalue, 0x7F))); }
 
     // overloaded operators that ensure alignment
     inline void* operator new[](size_t x) { return _aligned_malloc(x, 16); }
@@ -79,13 +85,13 @@ public:
     // Member variables
     union {
         struct { float x, y, z; };
-        __m128 mmvalue;
+        simde__m128 mmvalue;
     };
 
 };
 
 inline vector3 operator+(float a, const vector3& b) { return b + a; }
-inline vector3 operator-(float a, const vector3& b) { return vector3(_mm_set1_ps(a)) - b; }
+inline vector3 operator-(float a, const vector3& b) { return vector3(simde_mm_set1_ps(a)) - b; }
 inline vector3 operator*(float a, const vector3& b) { return b * a; }
-inline vector3 operator/(float a, const vector3& b) { return vector3(_mm_set1_ps(a)) / b; }
-#endif //PDBTOOLS_VECTOR3_H
+inline vector3 operator/(float a, const vector3& b) { return vector3(simde_mm_set1_ps(a)) / b; }
+#endif //SASTOOLS_VECTOR3_H

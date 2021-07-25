@@ -6,9 +6,8 @@ macro(addToIt name)
     #    endif()
     if(EXISTS "${TEST_DIR}/${name}.cpp")
         list(APPEND CPP_FILES "${TEST_DIR}/${name}.cpp")
-        elseif(EXISTS "${TEST_DIR}/${name}.h")
+    elseif(EXISTS "${TEST_DIR}/${name}.h")
         list(APPEND CPP_FILES "${TEST_DIR}/${name}.h")
-
     endif()
 
 endmacro(addToIt)
@@ -24,6 +23,7 @@ add_subdirectory("${TEST_DIR}" "${CMAKE_BINARY_DIR}/tests")
 
 MESSAGE("GOOGLE TESTS DIR : ${gtest_SOURCE_DIR}")
 include_directories(${gtest_SOURCE_DIR}/include ${gtest_SOURCE_DIR})
+
 MESSAGE("CMAKE_BINARY_DIR : ${CMAKE_BINARY_DIR}/tests")
 include_directories("${CMAKE_BINARY_DIR}/tests")
 
@@ -39,8 +39,9 @@ addToIt(utils)
 addToIt(PofRData)
 addToIt(IofQData)
 addToIt(Bead)
+addToIt(vector3)
 
-
+MESSAGE("** FILES => ${CPP_FILES}")
 set(TEST_OBJ ${CMAKE_PROJECT_NAME}_test)
 add_executable(${TEST_OBJ} ${CPP_FILES})
 target_link_libraries(${TEST_OBJ} ${BOOST_FILESYSTEM} ${BOOST_PO} ${BOOST_RANDOM} ${BOOST_REGEX} ${BOOST_SYSTEM} SASTools gtest gtest_main)

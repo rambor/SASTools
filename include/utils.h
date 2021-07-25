@@ -105,4 +105,4 @@ void printAtomLine(FILE * pFile, unsigned int index, std::string chain, unsigned
 
 DminType getDminValues(std::vector<vector3> & centered_coordinates);
 
-#endif //PDBTOOLS_UTILS_H
+#endif //SASTOOLS_UTILS_H
