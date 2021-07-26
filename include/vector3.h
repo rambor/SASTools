@@ -18,9 +18,9 @@
 #define _aligned_malloc(x,y) malloc(x)
 #define _aligned_free(x) free(x)
 
-#include <simde-no-tests-master/simde-arch.h>
-#include <simde-no-tests-master/simde-common.h>
-#include <simde-no-tests-master/x86/sse4.1.h>
+#include "simde-no-tests-master/simde-arch.h"
+#include "simde-no-tests-master/simde-common.h"
+#include "simde-no-tests-master/x86/sse4.1.h"
 
 // #include <smmintrin.h>
 // Simple vector class

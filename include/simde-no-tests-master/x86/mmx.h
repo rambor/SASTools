@@ -27,7 +27,7 @@
 #if !defined(SIMDE_X86_MMX_H)
 #define SIMDE_X86_MMX_H
 
-#include "simde-no-tests-master/simde-common.h"
+#include "../simde-common.h"
 
 HEDLEY_DIAGNOSTIC_PUSH
 SIMDE_DISABLE_UNWANTED_DIAGNOSTICS

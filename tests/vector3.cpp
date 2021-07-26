@@ -22,9 +22,9 @@ TEST(Vector3Tests, testSubtract){
     vector3 vec1 = vector3(1.0f,2.0f,3.0f);
     vector3 vec2 = vector3(1.0f,2.0f,3.0f);
     auto vec3 = vec1 - vec2;
-    EXPECT_FLOAT_EQ(vec1.x, 0.0f);
-    EXPECT_FLOAT_EQ(vec1.y, 0.0f);
-    EXPECT_FLOAT_EQ(vec1.z, 0.0f);
+    EXPECT_FLOAT_EQ(vec3.x, 0.0f);
+    EXPECT_FLOAT_EQ(vec3.y, 0.0f);
+    EXPECT_FLOAT_EQ(vec3.z, 0.0f);
 }
 
 
@@ -38,5 +38,5 @@ TEST(Vector3Tests, testSqdLength){
 TEST(Vector3Tests, testLength){
     vector3 vec1 = vector3(1.0f,2.0f,3.0f);
     float len = vec1.length();
-    EXPECT_FLOAT_EQ(len, sqrtf(len));
+    EXPECT_FLOAT_EQ(len, sqrtf(9.0f+4.0f+1.0f));
 }
