@@ -73,6 +73,8 @@ set(HEADERS ${header_path}/Model.h
 
 set(SOURCE_FILES PDBModel.cpp FileClass.cpp utils.cpp Coords.cpp IofQData.cpp PofRData.cpp)
 
+include(include/simde-no-tests-master/CMakeLists.txt)
+
 add_library(SASTools STATIC ${SOURCE_FILES} ${HEADERS} )
 
 set_target_properties(SASTools PROPERTIES
@@ -88,9 +90,10 @@ target_include_directories(SASTools
         $<INSTALL_INTERFACE:include>
         )
 
-# Install
-install(TARGETS SASTools DESTINATION lib EXPORT SASTools CONFIGURATIONS Release)
+# Install, DESTINATION is relative to CMAKE_INSTALL_PREFIX (/usr/local no longer on mac)
+install(TARGETS SASTools DESTINATION lib EXPORT SASTools CONFIGURATIONS RELEASE)
 install(DIRECTORY include DESTINATION include/sastools)
+#install(DIRECTORY stage DESTINATION include/sastools)
 install(EXPORT SASTools NAMESPACE sastools:: DESTINATION lib/cmake/sastools)
 
 add_custom_target(install_${PROJECT_NAME} "${CMAKE_COMMAND}" --build "${CMAKE_BINARY_DIR}" --target install
