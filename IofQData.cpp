@@ -13,6 +13,7 @@
 //   limitations under the License.
 
 #include <random>
+#include <utils.h>
 #include "IofQData.h"
 #include "ReciprocalSpaceScore.h"
 
@@ -20,6 +21,16 @@ IofQData::IofQData(std::string filename, bool convertToAngstromsFromNM) :
         DataBase(std::move(filename), "q", "IofQ"),
         convert(convertToAngstromsFromNM) {
         isPr = false;
+
+    signal_to_noise_per_point.push_back(100.0);
+    signal_to_noise_per_point.push_back(10.0);
+    signal_to_noise_per_point.push_back(2.0);
+    signal_to_noise_per_point.push_back(0.0f);
+    // may not be import for fitting smoothed data - only for Durbin Watson
+    points_per_signal_to_noise.push_back(3);
+    points_per_signal_to_noise.push_back(7);
+    points_per_signal_to_noise.push_back(11);
+    points_per_signal_to_noise.push_back(31);
 }
 
 std::string IofQData::getFilename() {
@@ -140,7 +151,6 @@ void IofQData::makeWorkingSet(){
     unsigned int ns_start = ((pQ[0] > deltaQ)) ? 2 : 1;
     float half_width = 0.5f*deltaQ;
 
-
     // throw exception or warning
 
     int redundancy = 2;
@@ -148,29 +158,88 @@ void IofQData::makeWorkingSet(){
     std::fill(indices.begin(), indices.end(), 0);
 
     // making terrible assumptions on the data - should really come up with a better algorithm that scales with actual uncertainties
-    float kc = (float)std::floor(ns/2.0) + 1.0f;
-    float kc3 = kc*kc*kc;
+//    float kc = (float)std::floor(ns/2.0) + 1.0f;
+//    float kc3 = kc*kc*kc;
     std::vector<unsigned int> pointsPerBin(ns+1);
     std::vector<unsigned int> selectedIndices;
 
-    int basepts = 4;
-    auto maxPts = (int)(4.7*basepts);
+//    int basepts = 4;
+//    auto maxPts = (int)(4.7*basepts);
 
-    for(unsigned int n=1; n<=ns; n++){
-        float nx = n*n*n;
-        pointsPerBin[n] = (unsigned int)std::floor(nx/(kc3 + nx)*(maxPts-basepts) + basepts);
-        std::cout << "PTS per Bin " << n << " " << pointsPerBin[n] << std::endl;
-    }
+    /*
+     * set target number of points per bin
+     */
+//    for(unsigned int n=1; n<=ns; n++){
+//        auto nx = (float)(n*n*n);
+//        pointsPerBin[n] = (unsigned int)std::floor(nx/(kc3 + nx)*(maxPts-basepts) + basepts);
+//        std::cout << "PTS per Bin " << n << " " << pointsPerBin[n] << std::endl;
+//    }
 
     intensities.reserve(total_data_points); // everything not in use is cross-validated set
     for(int i=0; i<total_data_points; i++){
         intensities[i] = false;
     }
 
+    std::vector<float> signal_to_noise(ns+1);
+
     for(unsigned int n=ns_start; n<=ns; n++){ // iterate over the shannon indices
 
-        float startq = (n==1) ? 0 : (deltaQ*n - half_width);
-        float endQ = deltaQ*n + half_width;
+        float startq = (n==1) ? 0 : (deltaQ*(float)n - half_width);
+        float endQ = deltaQ*(float)n + half_width;
+
+        indices.clear();
+        bool sample = false;
+
+        for(unsigned int i=startIndex; i < total_data_points; i++){
+
+            // get points closest to Shannon number
+            if (pQ[i] > startq && pQ[i] <= endQ){
+                indices.push_back(i);
+                sample = true;
+            }
+
+            if (pQ[i] > endQ){
+                startIndex = i;
+                break;
+            }
+        }
+
+        if (sample){
+            // determine average signal to noise in bin
+            float count_sum = 0.0f;
+            float sum = 0.0f;
+            for(auto in : indices){
+                 sum += y_data[in]/sigma_data[in];
+                 count_sum += 1.0f;
+            }
+            signal_to_noise[n] = sum/count_sum;
+        }
+    }
+
+    /*
+     *
+     */
+    for(int n=1; n<=ns; n++){
+        //std::cout << n << " S-to-N " << signal_to_noise[n] << std::endl;
+        float sn = signal_to_noise[n];
+        int counter = 0;
+        for(auto & limit : signal_to_noise_per_point){
+            if (sn > limit || sn < 0){ // negative intensities might happen
+                pointsPerBin[n] = points_per_signal_to_noise[counter];
+                break;
+            }
+            counter++;
+        }
+        logger("SIGNAL-To-NOISE ["+std::to_string(n)+"]", formatNumber(signal_to_noise[n], 2));
+        logger("POINTS PER BIN ["+std::to_string(n) + "]",std::to_string(pointsPerBin[n]));
+    }
+
+    // reset start index
+    startIndex=0;
+    for(unsigned int n=ns_start; n<=ns; n++){ // iterate over the shannon indices
+
+        float startq = (n==1) ? 0 : (deltaQ*(float)n - half_width);
+        float endQ = deltaQ*(float)n + half_width;
 
         indices.clear();
         bool sample = false;
@@ -193,7 +262,6 @@ void IofQData::makeWorkingSet(){
             std::shuffle(indices.begin(), indices.end(), gen);
             auto select = &pointsPerBin[n];
             int totalIn = indices.size();
-
             if (*select > totalIn){ // add half - incase too few points in shannon box
                 auto stophalf = (unsigned int)std::ceil(totalIn/2);
                 std::sort(indices.begin(), indices.begin()+stophalf);

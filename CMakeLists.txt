@@ -2,7 +2,10 @@ cmake_minimum_required(VERSION 3.8)
 set(SASTools_LANGUAGES CXX)
 set(SASTools_VERSION 0.7)
 #
-# best to set DESTDIR=/Users/xos81802 as -D flag passed to CMAKE
+# Please set environment variable DESTDIR
+# on MAC OS, /usr/local is no longer a useable location
+# I set DESTDIR to my home directory for builds and have a home lib and include
+# DESTDIR=/Users/username as -D flag passed to CMAKE
 #
 MESSAGE("BUILD TYPE ${CMAKE_BUILD_TYPE}")
 

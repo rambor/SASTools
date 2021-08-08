@@ -42,6 +42,8 @@ class IofQData : public DataBase {
     std::vector<bool> useMe;
     std::vector<Datum> workingSet;
     std::vector<Datum> workingSetSmoothed;
+    std::vector<float> signal_to_noise_per_point;
+    std::vector<unsigned int> points_per_signal_to_noise;
 public:
     const std::vector<Datum> &getWorkingSet() const;
 
