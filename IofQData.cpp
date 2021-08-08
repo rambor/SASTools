@@ -30,7 +30,7 @@ IofQData::IofQData(std::string filename, bool convertToAngstromsFromNM) :
     points_per_signal_to_noise.push_back(3);
     points_per_signal_to_noise.push_back(7);
     points_per_signal_to_noise.push_back(11);
-    points_per_signal_to_noise.push_back(31);
+    points_per_signal_to_noise.push_back(37);
 }
 
 std::string IofQData::getFilename() {
