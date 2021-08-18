@@ -2,10 +2,8 @@ cmake_minimum_required(VERSION 3.8)
 set(SASTools_LANGUAGES CXX)
 set(SASTools_VERSION 0.7)
 #
-# Please set environment variable DESTDIR
-# on MAC OS, /usr/local is no longer a useable location
-# I set DESTDIR to my home directory for builds and have a home lib and include
-# DESTDIR=/Users/username as -D flag passed to CMAKE
+# best to set DESTDIR=/home/directory as -D flag passed to CMAKE
+# this will be location where libSASTools.a will be installed
 #
 MESSAGE("BUILD TYPE ${CMAKE_BUILD_TYPE}")
 
@@ -41,17 +39,18 @@ set(header_path "${PROJECT_SOURCE_DIR}/include")
 find_package(Boost)
 
 MESSAGE("** BOOST ROOT => ${BOOSTROOT}")
+
 #SET(BOOST_ROOT ${BOOSTROOT})
 #SET(BOOST_LIBRARYDIR ${BOOSTROOT}/lib)
-#SET(BOOST_INCLUDEDIR ${BOOSTROOT})
+SET(BOOST_INCLUDEDIR ${BOOSTROOT}/stage)
 #include_directories(${BOOST_INCLUDEDIR})
 include_directories(${Boost_INCLUDE_DIRS})
 
-set(BOOST_FILESYSTEM ${BOOSTROOT}/lib/libboost_filesystem.a )
-set(BOOST_PO ${BOOSTROOT}/lib/libboost_program_options.a )
-set(BOOST_RANDOM ${BOOSTROOT}/lib/libboost_random.a )
-set(BOOST_REGEX ${BOOSTROOT}/lib/libboost_regex.a )
-set(BOOST_SYSTEM ${BOOSTROOT}/lib/libboost_system.a )
+set(BOOST_FILESYSTEM ${BOOST_INCLUDEDIR}/lib/libboost_filesystem.a )
+set(BOOST_PO ${BOOST_INCLUDEDIR}/lib/libboost_program_options.a )
+set(BOOST_RANDOM ${BOOST_INCLUDEDIR}/lib/libboost_random.a )
+set(BOOST_REGEX ${BOOST_INCLUDEDIR}/lib/libboost_regex.a )
+set(BOOST_SYSTEM ${BOOST_INCLUDEDIR}/lib/libboost_system.a )
 
 #MESSAGE("** BOOST INCLUDE => ${BOOST_INCLUDEDIR}")
 MESSAGE("** BOOST SPECIAL => ${BOOST_FILESYSTEM}")
@@ -86,7 +85,7 @@ include(include/simde-no-tests-master/CMakeLists.txt)
 
 add_library(SASTools STATIC ${SOURCE_FILES} ${HEADERS} )
 
-set_target_properties(SASTools PROPERTIES
+set_target_properties(SASTools PROPERTIES PUBLIC_HEADERS ${HEADERS}
         VERSION ${SASTools_VERSION}
         )
 
@@ -101,8 +100,16 @@ target_include_directories(SASTools
 
 # Install, DESTINATION is relative to CMAKE_INSTALL_PREFIX (/usr/local no longer on mac)
 install(TARGETS SASTools DESTINATION lib EXPORT SASTools CONFIGURATIONS RELEASE)
-install(DIRECTORY include DESTINATION include/sastools)
-#install(DIRECTORY stage DESTINATION include/sastools)
+install(TARGETS SASTools DESTINATION /Users/xos81802/usr/local/lib CONFIGURATIONS RELEASE)
+#install(TARGETS SASTools DIRECTORY /Users/xos81802/usr/local DESTINATION lib EXPORT SASTools CONFIGURATIONS RELEASE)
+install(DIRECTORY include DESTINATION /Users/xos81802/usr/local/include/sastools)
+
+#install(TARGETS SASTools
+#        ARCHIVE DESTINATION some/libpath
+#        LIBRARY DESTINATION some/libpath
+#        PUBLIC_HEADER DESTINATION some/includepath
+#        )
+
 install(EXPORT SASTools NAMESPACE sastools:: DESTINATION lib/cmake/sastools)
 
 add_custom_target(install_${PROJECT_NAME} "${CMAKE_COMMAND}" --build "${CMAKE_BINARY_DIR}" --target install
