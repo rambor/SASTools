@@ -27,10 +27,10 @@ IofQData::IofQData(std::string filename, bool convertToAngstromsFromNM) :
     signal_to_noise_per_point.push_back(2.0);
     signal_to_noise_per_point.push_back(0.0f);
     // may not be import for fitting smoothed data - only for Durbin Watson
-    points_per_signal_to_noise.push_back(3);
+    points_per_signal_to_noise.push_back(4);
     points_per_signal_to_noise.push_back(7);
     points_per_signal_to_noise.push_back(11);
-    points_per_signal_to_noise.push_back(37);
+    points_per_signal_to_noise.push_back(29);
 }
 
 std::string IofQData::getFilename() {
@@ -152,10 +152,10 @@ void IofQData::makeWorkingSet(){
     float half_width = 0.5f*deltaQ;
 
     // throw exception or warning
-
-    int redundancy = 2;
-    std::vector<unsigned int> indices((unsigned int)std::ceil(total_data_points/(float)ns)*redundancy);
-    std::fill(indices.begin(), indices.end(), 0);
+//    int redundancy = 2;
+    std::vector<unsigned int> indices;
+//    std::vector<unsigned int> indices((unsigned int)std::ceil(total_data_points/(float)ns)*redundancy);
+//    std::fill(indices.begin(), indices.end(), 0);
 
     // making terrible assumptions on the data - should really come up with a better algorithm that scales with actual uncertainties
 //    float kc = (float)std::floor(ns/2.0) + 1.0f;
