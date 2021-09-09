@@ -15,12 +15,13 @@
 #ifndef SASTOOLS_MODEL_H
 #define SASTOOLS_MODEL_H
 
+class FileClass;
 // interface
 class Model {
 
 protected:
 
-    FileClass * base_file;
+    FileClass base_file;
     std::vector<float> x, y, z;
     float * centeredX; // new Array declared on heap
     float * centeredY;
@@ -28,10 +29,16 @@ protected:
     std::vector < unsigned int > resID;
 
 public:
-    Model(){}
-    Model(std::string file){base_file = new FileClass(file);}
+    Model() : centeredX(nullptr), centeredY(nullptr), centeredZ(nullptr) {}
 
-    virtual ~Model(){}
+    explicit Model(std::string file) : base_file(FileClass(file)), centeredX(nullptr), centeredY(nullptr), centeredZ(nullptr) {}
+
+    virtual ~Model(){
+        delete[] centeredX;
+        delete[] centeredY;
+        delete[] centeredZ;
+    };
+
     virtual std::string getFilename() = 0;    // "= 0" part makes this method pure virtual, and
     // also makes this class abstract.
     virtual std::string getFileExtension() = 0;
@@ -44,10 +51,6 @@ public:
     const float * getY() const { return y.data();}
     const float * getZ() const { return z.data();}
     const unsigned int * getResid() const { return resID.data(); }
-
-
-
 };
-
 
 #endif //SASTOOLS_MODEL_H

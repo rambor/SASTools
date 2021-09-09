@@ -16,19 +16,18 @@
 
 
 PDBModel::PDBModel(const std::string &file, bool discardWaters, bool isRNA) : Model(file), discardWaters(discardWaters), ifRNA(isRNA) {
-
     this->extractCoordinates();
 }
 
 
 void PDBModel::extractCoordinates() {
 
-    std::ifstream scxFile (base_file->getFullPath());
+    std::ifstream scxFile (base_file.getFullPath());
     if(scxFile.fail()){
         //File does not exist code here
         std::string alert;
         char buffer[80];
-        std::snprintf(buffer, 80, " ******* ERROR => File does not exist :  %s\n", base_file->getFullPath().c_str());
+        std::snprintf(buffer, 80, " ******* ERROR => File does not exist :  %s\n", base_file.getFullPath().c_str());
         alert.append(buffer);
         throw std::invalid_argument(alert);
     }
@@ -44,7 +43,7 @@ void PDBModel::extractCoordinates() {
     boost::regex ifHydrogen("H[A-Z]+");
     boost::regex edgeRadiusFormat("EDGE RADIUS"); // important for Iketama modeling
 
-    SASTOOLS_UTILS_H::logger("READING PDB FILE", base_file->getFullPath());
+    SASTOOLS_UTILS_H::logger("READING PDB FILEX", base_file.getFullPath());
     volume = 0.0f;
     if (scxFile.is_open()) {
         std::string line, tempResi, alt;

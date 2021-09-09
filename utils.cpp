@@ -321,6 +321,9 @@ void dmaxFromPDB(std::vector <float> & x,
         }
     }
 
+    pX = nullptr;
+    pY = nullptr;
+    pZ = nullptr;
 //    std::cout << "\td_max estimated as: " << *dmax << std::endl;
 //    std::cout << "\tCentering PDB model at (" << centerX << ", " << centerY  << ", " << centerZ << ")"<< std::endl;
 }

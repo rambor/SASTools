@@ -26,6 +26,7 @@
 
 class PDBModel : public Model {
 
+    bool discardWaters=false, ifRNA = false;
     //FileClass coordinate_file;
     std::vector < std::string > atomType, resi, trimmedAtomType, trimmedResi, chainID, waterLines;
 
@@ -33,7 +34,7 @@ class PDBModel : public Model {
     std::map<std::string, std::string> residToResidue;
     std::map<std::string, unsigned int> alternateAtoms;
 
-    bool discardWaters=false, ifRNA = false, found_edge_radius=false;
+    bool found_edge_radius=false;
     float edge_radius=0.0;
     unsigned int totalAtoms, totalResidues, waterCount, watersPerResidue, totalWatersInExcludedVolume;
     float volume=0.0f, dmax, fractionalWaterOccupancy, smax; // smax is the radius of the sphere than encloses centered object
@@ -41,20 +42,12 @@ class PDBModel : public Model {
     vector3 centeringVector;
 
 public:
-    PDBModel() : Model(){}
+    PDBModel()=default;
 
     PDBModel(const std::string & file, bool discardWaters, bool isRNA);
 
-    ~PDBModel(){
-        delete base_file;
-        base_file = nullptr;
+    virtual ~PDBModel() {
 
-        delete[] centeredX;
-        centeredX = nullptr;
-        delete[] centeredY;
-        centeredY = nullptr;
-        delete[] centeredZ;
-        centeredZ = nullptr;
     }
 
     // copy constructor - prevents copying
@@ -63,22 +56,27 @@ public:
     PDBModel & operator=(const PDBModel & model)=delete;
 
     // move assignment operator
-    PDBModel & operator=(PDBModel && model){
+    PDBModel & operator=(PDBModel && model) noexcept {
+
         if (&model == this)
             return *this;
 
-        atomType = model.atomType;
+        atomType = std::move(model.atomType);
+        resi = std::move(model.resi);
+        trimmedAtomType = std::move(model.trimmedAtomType);
+        trimmedResi = std::move(model.trimmedResi);
+        chainID = std::move(model.chainID);
+        waterLines = std::move(model.waterLines);
 
-        resi = model.resi;
-        trimmedAtomType = model.trimmedAtomType;
-        trimmedResi = model.trimmedResi;
-        chainID = model.chainID;
-        waterLines = model.waterLines;
+        segIDresID = std::move(model.segIDresID);
+        uniqAtomTypes = std::move(model.uniqAtomTypes);
+        residToResidue = std::move(model.residToResidue);
+        alternateAtoms = std::move(model.alternateAtoms);
+
         discardWaters = model.discardWaters;
         ifRNA = model.ifRNA;
         found_edge_radius = model.found_edge_radius;
         edge_radius = model.edge_radius;
-
 
         totalAtoms = model.totalAtoms;
         totalResidues = model.totalResidues;
@@ -89,43 +87,34 @@ public:
         volume = model.volume;
         dmax = model.dmax;
         fractionalWaterOccupancy = model.fractionalWaterOccupancy;
+        smax = model.smax;
         
-        occupancies = model.occupancies;
-        atomVolume = model.atomVolume;
-        atomicRadii = model.atomicRadii;
-        atomNumbers = model.atomNumbers;
+        occupancies = std::move(model.occupancies);
+        atomVolume = std::move(model.atomVolume);
+        atomicRadii = std::move(model.atomicRadii);
+        atomNumbers = std::move(model.atomNumbers);
 
-        centeringVector = vector3(model.centeringVector);
+        centeringVector = std::move(model.centeringVector);
 
-        segIDresID = model.segIDresID;
-        uniqAtomTypes = model.uniqAtomTypes;
-
-
-        delete base_file;
         base_file = model.base_file;
 
-        delete model.base_file;
-        model.base_file = nullptr;
-
-        x = model.x;
-        y = model.y;
-        z = model.z;
-        resID = model.resID;
+        x = std::move(model.x);
+        y = std::move(model.y);
+        z = std::move(model.z);
+        resID = std::move(model.resID);
 
         delete[] centeredX;
         delete[] centeredY;
         delete[] centeredZ;
-
         centeredX = model.centeredX;
         centeredY = model.centeredY;
         centeredZ = model.centeredZ;
 
-        delete[] model.centeredX;
-        delete[] model.centeredY;
-        delete[] model.centeredZ;
         model.centeredX= nullptr;
         model.centeredY= nullptr;
         model.centeredZ= nullptr;
+
+        return *this;
     }
 
 //    std::vector < std::string > atomType, resi, trimmedAtomType, trimmedResi, chainID, waterLines;
@@ -136,60 +125,39 @@ public:
 //    std::vector < float > electronsPerAtom;
 
     // move constructor
-    PDBModel (PDBModel && model) noexcept :
-
-            atomType(model.atomType),
-            resi(model.resi),
-            trimmedAtomType(model.trimmedAtomType),
-            trimmedResi(model.trimmedResi),
-            chainID(model.chainID),
-            waterLines(model.waterLines),
-            discardWaters(model.discardWaters),
-            ifRNA(model.ifRNA),
-            found_edge_radius(model.found_edge_radius),
-            edge_radius(model.edge_radius),
-            totalAtoms(model.totalAtoms),
-            totalResidues(model.totalResidues),
-            waterCount(model.waterCount),
-            watersPerResidue(model.watersPerResidue),
-            totalWatersInExcludedVolume(model.totalWatersInExcludedVolume),
-            volume(model.volume),
-            dmax(model.dmax),
-            fractionalWaterOccupancy(model.fractionalWaterOccupancy),
-            occupancies(model.occupancies),
-            atomVolume (model.atomVolume),
-            atomicRadii (model.atomicRadii),
-            atomNumbers (model.atomNumbers),
-            centeringVector(vector3(model.centeringVector))
+    PDBModel (PDBModel && model) noexcept
+//            atomType(model.atomType),
+//            resi(model.resi),
+//            trimmedAtomType(model.trimmedAtomType),
+//            trimmedResi(model.trimmedResi),
+//            chainID(model.chainID),
+//            waterLines(model.waterLines),
+//            discardWaters(model.discardWaters),
+//            ifRNA(model.ifRNA),
+//            found_edge_radius(model.found_edge_radius),
+//            edge_radius(model.edge_radius),
+//            totalAtoms(model.totalAtoms),
+//            totalResidues(model.totalResidues),
+//            waterCount(model.waterCount),
+//            watersPerResidue(model.watersPerResidue),
+//            totalWatersInExcludedVolume(model.totalWatersInExcludedVolume),
+//            volume(model.volume),
+//            dmax(model.dmax),
+//            fractionalWaterOccupancy(model.fractionalWaterOccupancy),
+//            smax(model.smax),
+//            occupancies(model.occupancies),
+//            atomVolume (model.atomVolume),
+//            atomicRadii (model.atomicRadii),
+//            atomNumbers (model.atomNumbers),
+//            centeringVector(vector3(model.centeringVector))
     {
 
-        base_file = model.base_file;
-
-        delete model.base_file;
-        model.base_file = nullptr;
-
-        x = model.x;
-        y = model.y;
-        z = model.z;
-        resID = model.resID;
-        centeredX = model.centeredX;
-        centeredY = model.centeredY;
-        centeredZ = model.centeredZ;
-
-        segIDresID = model.segIDresID;
-        uniqAtomTypes = model.uniqAtomTypes;
-
-        delete[] model.centeredX;
-        delete[] model.centeredY;
-        delete[] model.centeredZ;
-        model.centeredX= nullptr;
-        model.centeredY= nullptr;
-        model.centeredZ= nullptr;
+            *this = std::move(model);
     }
     
-    std::string getFilename() override {return base_file->getFilename();}
+    std::string getFilename() override {return base_file.getFilename();}
 
-    std::string getFileExtension() override {return base_file->getFileExtension();}
+    std::string getFileExtension() override {return base_file.getFileExtension();}
 
     float residueToVolume(std::string atom_type, std::string residue, float * vdwradius, float * atomic_number);
     void extractCoordinates() override;

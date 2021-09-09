@@ -29,6 +29,7 @@ class FileClass {
 public:
     FileClass(){};
     explicit FileClass(std::string name);
+    ~FileClass()= default;
 
 
     void setFileExtension();
