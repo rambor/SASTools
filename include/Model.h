@@ -26,7 +26,7 @@ protected:
     float * centeredX; // new Array declared on heap
     float * centeredY;
     float * centeredZ;
-    std::vector < unsigned int > resID;
+    std::vector < int > resID;
 
 public:
     Model() : centeredX(nullptr), centeredY(nullptr), centeredZ(nullptr) {}
@@ -50,7 +50,7 @@ public:
     const float * getX() const { return x.data();}
     const float * getY() const { return y.data();}
     const float * getZ() const { return z.data();}
-    const unsigned int * getResid() const { return resID.data(); }
+    const int * getResid() const { return resID.data(); }
 };
 
 #endif //SASTOOLS_MODEL_H
