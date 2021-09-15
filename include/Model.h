@@ -23,10 +23,12 @@ protected:
 
     FileClass base_file;
     std::vector<float> x, y, z;
+    std::vector<vector3> model;
     float * centeredX; // new Array declared on heap
     float * centeredY;
     float * centeredZ;
     std::vector < int > resID;
+    unsigned int totalAtoms;
 
 public:
     Model() : centeredX(nullptr), centeredY(nullptr), centeredZ(nullptr) {}
@@ -50,7 +52,17 @@ public:
     const float * getX() const { return x.data();}
     const float * getY() const { return y.data();}
     const float * getZ() const { return z.data();}
+    const vector3 * getModel() const { return model.data();}
+    const std::vector<vector3> * getModelVector() const { return &model;}
+
     const int * getResid() const { return resID.data(); }
+
+    void setVectorModelToCenter() {
+        model.clear();
+        for(unsigned int i=0; i<totalAtoms; i++){
+            model.emplace_back(vector3(centeredX[i],centeredY[i],centeredZ[i]));
+        }
+    }
 };
 
 #endif //SASTOOLS_MODEL_H
