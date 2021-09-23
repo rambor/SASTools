@@ -77,6 +77,13 @@ TEST_F(PDBModelTests, checkIsResidue){
 }
 
 
+//TEST_F(PDBModelTests, cvxTest){
+//    bsaModel.setCVXHullPoints();
+//    std::cout << " CVX :: " << bsaModel.getTotalPointsInCVX() << std::endl;
+//    bsaModel.writeCVXPointsCoordinatesToFile();
+//    EXPECT_GT(bsaModel.getTotalPointsInCVX(), 1);
+//}
+
 
 TEST_F(PDBModelTests, checkIsResidueRNA){
     unsigned int total=p4p6RNAModel.getTotalCoordinates();

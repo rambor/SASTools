@@ -98,7 +98,7 @@ void PDBModel::extractCoordinates() {
                 std::string tempID = line.substr(22,4);
                 trimWhiteSpace(tempID);
 
-                resID.push_back( (unsigned int) atoi( tempID.c_str() )); // residue sequence number
+                resID.push_back( atoi( tempID.c_str() )); // residue sequence number
                 chainID.push_back(line.substr(21,1));
 
                 std::string temptag = line.substr(21,1) + tempID;
@@ -2023,6 +2023,28 @@ void PDBModel::writeCenteredCoordinatesToFile(std::string name) {
 }
 
 
+void PDBModel::writeTranslatedCoordinatesToFile(std::string name, std::vector<vector3> coords) {
+
+    std::string residue_index;
+
+    name = name + ".pdb";
+    //const char * outputFileName = name.c_str() ;
+    //const char * originalPDBFilename = this->filename.c_str();
+    FILE * pFile;
+    pFile = fopen(name.c_str(), "w");
+    vector3 * vec;
+
+    fprintf(pFile,"REMARK  TRANSLATED COORDINATES : %s\n", this->getFilename().c_str());
+    for (unsigned int n=0; n < totalAtoms; n++) {
+        residue_index = boost::lexical_cast<std::string>(resID[n]);
+        vec = &coords[n];
+        //fprintf(pFile, "%-3s%7i%4s%5s%2s%4s     %7.3f %7.3f %7.3f  1.00 100.00\n", "ATOM", n+1, trimmedAtomType[n].c_str(), resi[n].c_str(), chainID[n].c_str(), residue_index.c_str(), centeredX[n], centeredY[n], centeredZ[n] );
+        fprintf(pFile, "%-6s%5i %4s %3s %1s%4s    %8.3f%8.3f%8.3f  1.00100.00\n", "ATOM", n+1, atomType[n].c_str(), resi[n].c_str(), chainID[n].c_str(), residue_index.c_str(), vec->x, vec->y, vec->z);
+    }
+    fprintf(pFile,"END\n");
+    fclose(pFile);
+}
+
 /*
  * smax is the longest radial distance of the macromolecule from its center
  */
@@ -2044,3 +2066,62 @@ void PDBModel::setSMax(){
 
     smax = sqrt(smax);
 }
+
+
+// returns points of the convex hull within the hullpts set
+//void PDBModel::setCVXHullPoints(){
+//
+//    char flags[] = "qhull FA";
+//    atom_indices_to_cvx_hull.clear();
+//
+//    coordT hullPoints2[3*totalAtoms];
+//    std::vector<unsigned int> active_indices(totalAtoms);
+//    // calculate CVX Hull from selected indices
+//    unsigned int count=0;
+//
+//    for(unsigned int i=0; i<totalAtoms; i++){
+//        count = 3*i;
+//        hullPoints2[count] = x[i];
+//        hullPoints2[count + 1] = y[i];
+//        hullPoints2[count + 2] = z[i];
+//        active_indices[i] =i;
+//    }
+//
+//    // calculate convex hull
+//    qh_new_qhull(3, totalAtoms, hullPoints2, 0, flags, nullptr, nullptr);
+//
+//    vertexT * vertices = qh vertex_list;
+//    auto totalV = (unsigned int)qh num_vertices;
+//
+//    // only move CVX hull points
+//    for (unsigned int v = 0; v < totalV; v++) { //
+//        atom_indices_to_cvx_hull.insert(active_indices[qh_pointid( vertices->point)]);
+//        vertices = vertices->next;
+//    }
+//
+//    qh_freeqhull(true);
+//}
+//
+//
+//void PDBModel::writeCVXPointsCoordinatesToFile() {
+//
+//    std::string residue_index;
+//
+//    std::string name = "cvx.pdb";
+//    //const char * outputFileName = name.c_str() ;
+//    //const char * originalPDBFilename = this->filename.c_str();
+//    FILE * pFile;
+//    pFile = fopen(name.c_str(), "w");
+//
+//    fprintf(pFile,"REMARK  CVX COORDINATES : %s\n", this->getFilename().c_str());
+//    int n=0;
+//    for(auto & atom : atom_indices_to_cvx_hull){
+//        residue_index = boost::lexical_cast<std::string>(resID[atom]);
+//        fprintf(pFile, "%-6s%5i %4s %3s %1s%4s    %8.3f%8.3f%8.3f  1.00100.00\n", "ATOM", n+1, atomType[atom].c_str(), resi[atom].c_str(), chainID[atom].c_str(), residue_index.c_str(), x[atom], y[atom], z[atom]);
+//
+//    }
+//
+//    fprintf(pFile,"END\n");
+//    fclose(pFile);
+//}
+

@@ -85,6 +85,7 @@ include(include/simde-no-tests-master/CMakeLists.txt)
 
 add_library(SASTools STATIC ${SOURCE_FILES} ${HEADERS} )
 
+
 set_target_properties(SASTools PROPERTIES PUBLIC_HEADERS ${HEADERS}
         VERSION ${SASTools_VERSION}
         )
@@ -101,6 +102,8 @@ target_include_directories(SASTools
 # Install, DESTINATION is relative to CMAKE_INSTALL_PREFIX (/usr/local no longer on mac)
 install(TARGETS SASTools DESTINATION lib EXPORT SASTools CONFIGURATIONS RELEASE)
 install(TARGETS SASTools DESTINATION /Users/xos81802/usr/local/lib CONFIGURATIONS RELEASE)
+#install(TARGETS SASTools DESTINATION lib EXPORT SASTools CONFIGURATIONS DEBUG)
+#install(TARGETS SASTools DESTINATION /Users/xos81802/usr/local/lib CONFIGURATIONS DEBUG)
 #install(TARGETS SASTools DIRECTORY /Users/xos81802/usr/local DESTINATION lib EXPORT SASTools CONFIGURATIONS RELEASE)
 install(DIRECTORY include DESTINATION /Users/xos81802/usr/local/include/sastools)
 

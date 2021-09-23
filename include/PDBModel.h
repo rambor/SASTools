@@ -36,7 +36,7 @@ class PDBModel : public Model {
 
     bool found_edge_radius=false;
     float edge_radius=0.0;
-    unsigned int totalAtoms, totalResidues, waterCount, watersPerResidue, totalWatersInExcludedVolume;
+    unsigned int totalResidues, waterCount, watersPerResidue, totalWatersInExcludedVolume;
     float volume=0.0f, dmax, fractionalWaterOccupancy, smax; // smax is the radius of the sphere than encloses centered object
     std::vector<float> occupancies, atomVolume, atomicRadii, atomNumbers;
     vector3 centeringVector;
@@ -192,7 +192,7 @@ public:
     const vector3 * getCenteringVector() const { return &centeringVector;}
 
     // resID;
-    const std::vector<unsigned int>::const_iterator getResIDIterator() const { return resID.cbegin(); }
+    const std::vector<int>::const_iterator getResIDIterator() const { return resID.cbegin(); }
     const std::vector<std::string>::const_iterator getAtomTypeIterator() const { return trimmedAtomType.cbegin(); }
     const std::vector<std::string>::const_iterator getChainIDIterator() const { return chainID.cbegin(); }
 
@@ -211,6 +211,9 @@ public:
     void convertAtomTypes(int index_of_atom_type);
 
     float getAtomicNumberByIndex(int index){ return atomNumbers[index];}
+
+    void writeTranslatedCoordinatesToFile(std::string name, std::vector<vector3> coords);
+
 };
 
 
