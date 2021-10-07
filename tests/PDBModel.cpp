@@ -134,6 +134,25 @@ TEST_F(PDBModelTests, checkIsBackboneRNA){
     EXPECT_EQ(positiveCount, (p4p6RNAModel.getTotalUniqueResidues()-1)) << positiveCount << " ::  ";
 }
 
+
+/*
+ * set model to center
+ */
+TEST_F(PDBModelTests, centerVectorModel){
+    p4p6RNAModel.setVectorModelToCenter();
+    unsigned int total=p4p6RNAModel.getTotalCoordinates();
+    const vector3 * vecs = p4p6RNAModel.getModel();
+    vector3 sum = vector3(0,0,0);
+
+    for(unsigned int i=0; i<total; i++){
+       sum+=vecs[i];
+    }
+
+    sum *= 1.0f/(float)total;
+    EXPECT_NEAR(sum.length(), 0.0, 0.01);
+}
+
+
 TEST_F(PDBModelTests, checkTrimWhiteSpace){
     std::string testString = "    CA ";
     bsaModel.trimWhiteSpace(testString);
