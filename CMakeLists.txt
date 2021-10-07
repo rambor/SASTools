@@ -33,6 +33,8 @@ set(Boost_USE_STATIC_RUNTIME ON)
 # from command line for cmake, pass in -DBOOSTROOT=/your/directoryToBoost
 MESSAGE("CMAKE INSTALL LIBDIR ${CMAKE_INSTALL_LIBDIR}")
 MESSAGE("PROJECT SOURCE DIR ${PROJECT_SOURCE_DIR}")
+MESSAGE("CMAKE INSTALL PREFIX ${CMAKE_INSTALL_PREFIX}") # default is /usr/local
+
 set(header_path "${PROJECT_SOURCE_DIR}/include")
 
 # Boost root variable set as environment variable in CLION Preferences
@@ -42,7 +44,8 @@ MESSAGE("** BOOST ROOT => ${BOOSTROOT}")
 
 #SET(BOOST_ROOT ${BOOSTROOT})
 #SET(BOOST_LIBRARYDIR ${BOOSTROOT}/lib)
-SET(BOOST_INCLUDEDIR ${BOOSTROOT}/stage)
+#SET(BOOST_INCLUDEDIR ${BOOSTROOT}/stage)
+SET(BOOST_INCLUDEDIR ${BOOSTROOT})
 #include_directories(${BOOST_INCLUDEDIR})
 include_directories(${Boost_INCLUDE_DIRS})
 
@@ -60,7 +63,7 @@ MESSAGE("** BOOST SPECIAL => ${BOOST_REGEX}")
 MESSAGE("** BOOST SPECIAL => ${BOOST_SYSTEM}")
 MESSAGE("** BOOST INCLUDE DIRECTORY: ${Boost_INCLUDE_DIR}")
 
-MESSAGE("CMAKE INSTALL PREFIX ${CMAKE_INSTALL_PREFIX}") # default is /usr/local
+
 
 set(HEADERS ${header_path}/Model.h
         ${header_path}/Bead.h
@@ -85,7 +88,6 @@ include(include/simde-no-tests-master/CMakeLists.txt)
 
 add_library(SASTools STATIC ${SOURCE_FILES} ${HEADERS} )
 
-
 set_target_properties(SASTools PROPERTIES PUBLIC_HEADERS ${HEADERS}
         VERSION ${SASTools_VERSION}
         )
@@ -100,12 +102,18 @@ target_include_directories(SASTools
         )
 
 # Install, DESTINATION is relative to CMAKE_INSTALL_PREFIX (/usr/local no longer on mac)
-install(TARGETS SASTools DESTINATION lib EXPORT SASTools CONFIGURATIONS RELEASE)
-install(TARGETS SASTools DESTINATION /Users/xos81802/usr/local/lib CONFIGURATIONS RELEASE)
-#install(TARGETS SASTools DESTINATION lib EXPORT SASTools CONFIGURATIONS DEBUG)
+# installation on new macs seems relative to user directory
+#install(TARGETS SASTools EXPORT SASTools DESTINATION lib CONFIGURATIONS RELEASE)
+#install(TARGETS SASTools DESTINATION lib EXPORT SASTools CONFIGURATIONS RELEASE)
 #install(TARGETS SASTools DESTINATION /Users/xos81802/usr/local/lib CONFIGURATIONS DEBUG)
 #install(TARGETS SASTools DIRECTORY /Users/xos81802/usr/local DESTINATION lib EXPORT SASTools CONFIGURATIONS RELEASE)
-install(DIRECTORY include DESTINATION /Users/xos81802/usr/local/include/sastools)
+install(DIRECTORY ${CMAKE_SOURCE_DIR}/include/ DESTINATION include/sastools FILES_MATCHING PATTERN "*.h" )
+
+INSTALL(TARGETS SASTools
+        EXPORT SASTools
+        PUBLIC_HEADER
+        DESTINATION include
+        )
 
 #install(TARGETS SASTools
 #        ARCHIVE DESTINATION some/libpath
