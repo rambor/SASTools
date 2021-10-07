@@ -176,7 +176,7 @@ void IofQData::makeWorkingSet(){
 //    }
 
     intensities.reserve(total_data_points); // everything not in use is cross-validated set
-    for(int i=0; i<total_data_points; i++){
+    for(unsigned int i=0; i<total_data_points; i++){
         intensities[i] = false;
     }
 
@@ -219,7 +219,7 @@ void IofQData::makeWorkingSet(){
     /*
      *
      */
-    for(int n=1; n<=ns; n++){
+    for(unsigned int n=1; n<=ns; n++){
         //std::cout << n << " S-to-N " << signal_to_noise[n] << std::endl;
         float sn = signal_to_noise[n];
         int counter = 0;
