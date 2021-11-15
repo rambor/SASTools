@@ -24,13 +24,13 @@ IofQData::IofQData(std::string filename, bool convertToAngstromsFromNM) :
 
     signal_to_noise_per_point.push_back(100.0);
     signal_to_noise_per_point.push_back(10.0);
-    signal_to_noise_per_point.push_back(2.0);
+    signal_to_noise_per_point.push_back(1.8);
     signal_to_noise_per_point.push_back(0.0f);
     // may not be import for fitting smoothed data - only for Durbin Watson
     points_per_signal_to_noise.push_back(4);
     points_per_signal_to_noise.push_back(7);
     points_per_signal_to_noise.push_back(11);
-    points_per_signal_to_noise.push_back(29);
+    points_per_signal_to_noise.push_back(19);
 }
 
 std::string IofQData::getFilename() {
@@ -144,44 +144,29 @@ void IofQData::makeWorkingSet(){
 
     auto ns = (unsigned int)std::ceil(qmax*dmax/M_PI);
 
-    unsigned int startIndex=0;
 
     const auto pQ = x_data.data();
 
-    unsigned int ns_start = ((pQ[0] > deltaQ)) ? 2 : 1;
-    float half_width = 0.5f*deltaQ;
+    const float half_width = 0.5f*deltaQ;
 
     // throw exception or warning
-//    int redundancy = 2;
     std::vector<unsigned int> indices;
-//    std::vector<unsigned int> indices((unsigned int)std::ceil(total_data_points/(float)ns)*redundancy);
-//    std::fill(indices.begin(), indices.end(), 0);
 
     // making terrible assumptions on the data - should really come up with a better algorithm that scales with actual uncertainties
-//    float kc = (float)std::floor(ns/2.0) + 1.0f;
-//    float kc3 = kc*kc*kc;
     std::vector<unsigned int> pointsPerBin(ns+1);
     std::vector<unsigned int> selectedIndices;
-
-//    int basepts = 4;
-//    auto maxPts = (int)(4.7*basepts);
 
     /*
      * set target number of points per bin
      */
-//    for(unsigned int n=1; n<=ns; n++){
-//        auto nx = (float)(n*n*n);
-//        pointsPerBin[n] = (unsigned int)std::floor(nx/(kc3 + nx)*(maxPts-basepts) + basepts);
-//        std::cout << "PTS per Bin " << n << " " << pointsPerBin[n] << std::endl;
-//    }
-
     intensities.reserve(total_data_points); // everything not in use is cross-validated set
     for(unsigned int i=0; i<total_data_points; i++){
         intensities[i] = false;
     }
 
     std::vector<float> signal_to_noise(ns+1);
-
+    unsigned int startIndex=0;
+    unsigned int ns_start = ((pQ[0] > deltaQ)) ? 2 : 1;
     for(unsigned int n=ns_start; n<=ns; n++){ // iterate over the shannon indices
 
         float startq = (n==1) ? 0 : (deltaQ*(float)n - half_width);
@@ -217,7 +202,7 @@ void IofQData::makeWorkingSet(){
     }
 
     /*
-     *
+     * assign the number of points per bin for the data
      */
     for(unsigned int n=1; n<=ns; n++){
         //std::cout << n << " S-to-N " << signal_to_noise[n] << std::endl;
@@ -285,7 +270,7 @@ void IofQData::makeWorkingSet(){
     }
 
     auto workingSetSize = (unsigned int)workingSet.size();
-    std::cout << "  working set size : " << workingSetSize << std::endl;
+    //std::cout << "  working set size : " << workingSetSize << std::endl;
     // create vector of qvalues
     qvalues.resize(workingSetSize);
     invVarianceWorkingSet.resize(workingSetSize);
