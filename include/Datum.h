@@ -17,10 +17,10 @@
 
 class Datum {
 
-    float q, iofq, sigma, icalc;
+    float q, iofq, sigma;
     unsigned int index;
+    float icalc;
     float var, invvar;
-
     std::string type=".";
 
 public:
@@ -32,8 +32,48 @@ public:
 
     // copy constructor
     Datum(const Datum & dat) : q(dat.q), iofq(dat.iofq), sigma(dat.sigma), index(dat.index) {
+        this->icalc = dat.icalc;
         this->var = dat.var;
         this->invvar = dat.invvar;
+        this->type = dat.type;
+    }
+    // copy assignment
+    Datum & operator = (const Datum & dat) {
+        if (&dat == this)
+            return *this;
+
+        this->q = dat.q;
+        this->iofq = dat.iofq;
+        this->sigma = dat.sigma;
+        this->index = dat.index;
+        this->icalc = dat.icalc;
+        this->var = dat.var;
+        this->invvar = dat.invvar;
+        this->type = dat.type;
+
+        return *this;
+    }
+
+    // move assignment operator
+    Datum & operator=(Datum && model) noexcept {
+        if (&model == this)
+            return *this;
+
+        q = model.q;
+        iofq = model.iofq;
+        sigma = model.sigma;
+        index = model.index;
+        icalc = model.icalc;
+        var = model.var;
+        invvar = model.invvar;
+        type = model.type;
+
+        return *this;
+    }
+
+    // move constructor
+    Datum (Datum && model) noexcept{
+        *this = std::move(model);
     }
 
     ~Datum(){

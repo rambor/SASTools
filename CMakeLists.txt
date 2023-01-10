@@ -79,6 +79,7 @@ set(HEADERS ${header_path}/Model.h
         ${header_path}/utils.h
         ${header_path}/RealSpaceScore.h
         ${header_path}/ReciprocalSpaceScore.h
+        ${header_path}/svd3.h
         ${header_path}/vector3.h
         )
 
@@ -86,9 +87,9 @@ set(SOURCE_FILES PDBModel.cpp FileClass.cpp utils.cpp Coords.cpp IofQData.cpp Po
 
 include(include/simde-no-tests-master/CMakeLists.txt)
 
-add_library(SASTools STATIC ${SOURCE_FILES} ${HEADERS} )
+add_library(SASTools STATIC ${SOURCE_FILES} ${HEADERS})
 
-set_target_properties(SASTools PROPERTIES PUBLIC_HEADERS ${HEADERS}
+set_target_properties(SASTools PROPERTIES PUBLIC_HEADERS "${HEADERS}"
         VERSION ${SASTools_VERSION}
         )
 

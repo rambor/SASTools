@@ -38,7 +38,8 @@ class PDBModel : public Model {
     float edge_radius=0.0;
     unsigned int totalResidues, waterCount, watersPerResidue, totalWatersInExcludedVolume;
     float volume=0.0f, dmax, fractionalWaterOccupancy, smax; // smax is the radius of the sphere than encloses centered object
-    std::vector<float> occupancies, atomVolume, atomicRadii, atomNumbers;
+    std::vector<float> occupancies, atomVolume, atomicRadii;
+    std::vector<int> atomNumbers;
     vector3 centeringVector;
 
 public:
@@ -156,10 +157,11 @@ public:
     }
     
     std::string getFilename() override {return base_file.getFilename();}
+    std::string getFileStemName() {return base_file.getStem();}
 
     std::string getFileExtension() override {return base_file.getFileExtension();}
 
-    float residueToVolume(std::string atom_type, std::string residue, float * vdwradius, float * atomic_number);
+    float residueToVolume(std::string atom_type, std::string residue, float * vdwradius, int * atomic_number);
     void extractCoordinates() override;
 
     unsigned int getTotalCoordinates() override { return totalAtoms;}
@@ -179,6 +181,8 @@ public:
 
     std::string getResidueAt(unsigned int i){ return resi[i];}
 
+    std::string * getResiduesVector(){ return resi.data(); }
+
     bool isBackbone(unsigned int index);
     bool getEdgeRadiusStatus(){return found_edge_radius;}
 
@@ -196,7 +200,13 @@ public:
     const std::vector<std::string>::const_iterator getAtomTypeIterator() const { return trimmedAtomType.cbegin(); }
     const std::vector<std::string>::const_iterator getChainIDIterator() const { return chainID.cbegin(); }
 
+    void moveTrimmedAtomType(std::vector<std::string> * vectorToReceive){
+        *vectorToReceive = std::move(this->trimmedAtomType);
+    }
+
     std::string getAtomTypeByIndex(int index){ return atomType[index];}
+    std::string * getPointerToAtomTypes(){ return atomType.data();}
+
     float getAtomicRadius(int index){return atomicRadii[index];}
 
     unsigned int getTotalUniqueAtoms(){ return uniqAtomTypes.size();}
@@ -210,10 +220,15 @@ public:
 
     void convertAtomTypes(int index_of_atom_type);
 
-    float getAtomicNumberByIndex(int index){ return atomNumbers[index];}
+    int getAtomicNumberByIndex(int index){ return atomNumbers[index];}
+    int * getAtomicNumberVec() { return atomNumbers.data();}
+    float * getAtomicVolumeVec() { return atomVolume.data();}
 
     void writeTranslatedCoordinatesToFile(std::string name, std::vector<vector3> coords);
 
+    bool checkHydrogen(std::string val);
+
+    float calculateMW();
 };
 
 

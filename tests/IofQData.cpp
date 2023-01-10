@@ -60,3 +60,51 @@ TEST_F(IofQDataTests, testMakeWorkingSet){
 
     EXPECT_EQ(iofqdata.getTotal(), 1124);
 }
+
+TEST_F(IofQDataTests, testMakeWorkingSetManyTimes){
+
+    iofqdata.extractData();
+    for(int i=0; i<101; i++){
+        iofqdata.makeWorkingSet();
+    }
+
+    EXPECT_EQ(iofqdata.getTotal(), 1124);
+}
+
+
+TEST_F(IofQDataTests, testMakeCVSet){
+
+    iofqdata.extractData();
+    iofqdata.makeWorkingSet();
+    iofqdata.makeCVSet();
+
+    // test that each value in CVset are not in workingset
+    auto cvqvalues = iofqdata.getCVSetQvalues();
+    auto qvalues = iofqdata.getQvalues();
+
+    unsigned int totalcv = cvqvalues.size();
+
+    // check there are no repeat values between working and CV set
+    for(auto & val : qvalues){ // workingset
+
+        bool flag = false;
+        float absQ = fabs(val);
+
+        for(unsigned int i=0; i<totalcv; i++){
+            float * ptrCV = &cvqvalues[i];
+            float diff = abs(val - *ptrCV);
+
+            if (diff < FLT_EPSILON) {
+                flag = true;
+            }
+
+            float absCV = fabs(*ptrCV);
+            float largest = (absCV > absQ) ? absCV : absQ;
+            if (diff <= largest * FLT_EPSILON)
+                flag = true;
+
+            ASSERT_FALSE(flag) << "VALUES are equal? " << val << " " << *ptrCV << std::endl;
+        }
+
+    }
+}

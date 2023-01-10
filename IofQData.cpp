@@ -28,8 +28,8 @@ IofQData::IofQData(std::string filename, bool convertToAngstromsFromNM) :
     signal_to_noise_per_point.push_back(0.0f);
     // may not be import for fitting smoothed data - only for Durbin Watson
     points_per_signal_to_noise.push_back(4);
+    points_per_signal_to_noise.push_back(5);
     points_per_signal_to_noise.push_back(7);
-    points_per_signal_to_noise.push_back(11);
     points_per_signal_to_noise.push_back(19);
 }
 
@@ -38,6 +38,7 @@ std::string IofQData::getFilename() {
 }
 
 void IofQData::extractData() {
+    logger("","Extracting data");
     std::ifstream data (base_file->getFullPath(), std::ifstream::in);
 
     if (data.is_open()) {
@@ -76,6 +77,8 @@ void IofQData::extractData() {
 
                 if ((tempLine.size() > 3) && boost::regex_search(tempLine.at(3), dataFormat)){ // assume fourth column is icalc from IFT
                     y_calc.push_back(std::strtof(tempLine[3].c_str(), nullptr));
+                } else {
+                    y_calc.push_back(std::strtof(tempLine[1].c_str(), nullptr)); // use experimental value if no column
                 }
 
                 total_data_points++;
@@ -119,6 +122,9 @@ void IofQData::extractData() {
 
         qmin = x_data[0];
         qmax = x_data[total_data_points-1];
+        logger("QMIN", formatNumber(qmin, 5));
+        logger("QMAX", formatNumber(qmax, 5));
+        logger("Total DataPoints", std::to_string(total_data_points));
     }
 }
 
@@ -135,25 +141,38 @@ float IofQData::getSigmaAt(unsigned int index) {
     return sigma_data[index];
 }
 
-// makes a working set using the entire set of data
+void IofQData::makeWorkingSet(int value){
+
+    // may not be import for fitting smoothed data - only for Durbin Watson
+    int count = 0;
+    for (auto & pp : points_per_signal_to_noise){
+        pp *= (value*(count*0.16666667f + 0.5f));
+        ++count;
+    }
+
+    this->makeWorkingSet();
+}
+
+// m
+// akes a working set using the entire set of data
 void IofQData::makeWorkingSet(){
     std::random_device rd;
     std::mt19937 gen(rd());
 
-    auto deltaQ = (float)(M_PI/dmax); // for N_s => 1
+    auto deltaQ = (float)(M_PI/dmax); // determines location of first shannon point, i.e, N_s => 1
+    const float half_width = 0.5f*deltaQ; // look at points surrounding the Shannon point
 
     auto ns = (unsigned int)std::ceil(qmax*dmax/M_PI);
-
+    std::vector<float> avg_signal_to_noise_per_shannon_bin(ns+1);
 
     const auto pQ = x_data.data();
-
-    const float half_width = 0.5f*deltaQ;
 
     // throw exception or warning
     std::vector<unsigned int> indices;
 
     // making terrible assumptions on the data - should really come up with a better algorithm that scales with actual uncertainties
-    std::vector<unsigned int> pointsPerBin(ns+1);
+    //std::vector<unsigned int> pointsPerBin(ns+1);
+    points_to_sample_per_shannon_bin.resize(ns+1);
     std::vector<unsigned int> selectedIndices;
 
     /*
@@ -164,7 +183,7 @@ void IofQData::makeWorkingSet(){
         intensities[i] = false;
     }
 
-    std::vector<float> signal_to_noise(ns+1);
+//    std::vector<float> signal_to_noise(ns+1);
     unsigned int startIndex=0;
     unsigned int ns_start = ((pQ[0] > deltaQ)) ? 2 : 1;
     for(unsigned int n=ns_start; n<=ns; n++){ // iterate over the shannon indices
@@ -194,10 +213,10 @@ void IofQData::makeWorkingSet(){
             float count_sum = 0.0f;
             float sum = 0.0f;
             for(auto in : indices){
-                 sum += y_data[in]/sigma_data[in];
+                 sum += std::abs(y_data[in]/sigma_data[in]);
                  count_sum += 1.0f;
             }
-            signal_to_noise[n] = sum/count_sum;
+            avg_signal_to_noise_per_shannon_bin[n] = sum/count_sum;
         }
     }
 
@@ -206,24 +225,31 @@ void IofQData::makeWorkingSet(){
      */
     for(unsigned int n=1; n<=ns; n++){
         //std::cout << n << " S-to-N " << signal_to_noise[n] << std::endl;
-        float sn = signal_to_noise[n];
+        float sn = avg_signal_to_noise_per_shannon_bin[n];
         int counter = 0;
         for(auto & limit : signal_to_noise_per_point){
+            /*
+            signal_to_noise_per_point.push_back(100.0);
+            signal_to_noise_per_point.push_back(10.0);
+            signal_to_noise_per_point.push_back(1.8);
+            signal_to_noise_per_point.push_back(0.0f);
+             */
             if (sn > limit || sn < 0){ // negative intensities might happen
-                pointsPerBin[n] = points_per_signal_to_noise[counter];
+                points_to_sample_per_shannon_bin[n] = points_per_signal_to_noise[counter];
                 break;
             }
             counter++;
         }
-        logger("SIGNAL-To-NOISE ["+std::to_string(n)+"]", formatNumber(signal_to_noise[n], 2));
-        logger("POINTS PER BIN ["+std::to_string(n) + "]",std::to_string(pointsPerBin[n]));
+        logger("SIGNAL-To-NOISE ["+std::to_string(n)+"]", formatNumber(avg_signal_to_noise_per_shannon_bin[n], 2));
+        logger("POINTS PER BIN ["+std::to_string(n) + "]",std::to_string(points_to_sample_per_shannon_bin[n]));
     }
 
     // reset start index
+    SASTOOLS_UTILS_H::logger("", "Making Working Set");
     startIndex=0;
     for(unsigned int n=ns_start; n<=ns; n++){ // iterate over the shannon indices
 
-        float startq = (n==1) ? 0 : (deltaQ*(float)n - half_width);
+        float startq = (n==1) ? 0 : (deltaQ*(float)n - half_width); // sample points on either side of q = n*PI/dmax
         float endQ = deltaQ*(float)n + half_width;
 
         indices.clear();
@@ -245,7 +271,7 @@ void IofQData::makeWorkingSet(){
 
         if (sample){
             std::shuffle(indices.begin(), indices.end(), gen);
-            auto select = &pointsPerBin[n];
+            auto select = &points_to_sample_per_shannon_bin[n];
             int totalIn = indices.size();
             if (*select > totalIn){ // add half - incase too few points in shannon box
                 auto stophalf = (unsigned int)std::ceil(totalIn/2);
@@ -264,17 +290,24 @@ void IofQData::makeWorkingSet(){
         }
     }
 
+    if (!workingSet.empty()){
+        workingSet.clear();
+        workingSetSmoothed.clear();
+    }
+
     for(auto & value : selectedIndices){
         workingSet.emplace_back(Datum(x_data[value], y_data[value], sigma_data[value], value));
+        // workingSetSmoothed uses value from IFT
         workingSetSmoothed.emplace_back(Datum(x_data[value], y_calc[value], sigma_data[value], value));
     }
 
-    auto workingSetSize = (unsigned int)workingSet.size();
-    //std::cout << "  working set size : " << workingSetSize << std::endl;
+    workingSetSize = (unsigned int)workingSet.size();
+
     // create vector of qvalues
     qvalues.resize(workingSetSize);
     invVarianceWorkingSet.resize(workingSetSize);
 
+    // after making working set, stored q-values are reassigned to working set q-values
     for(unsigned int m=0; m < workingSetSize; m++){
         qvalues[m] = workingSet[m].getQ();
         invVarianceWorkingSet[m] = workingSet[m].getInvVar();
@@ -354,6 +387,10 @@ void IofQData::calculateShannonInformation() {
     // create workingset for analysis
 }
 
+const std::vector<float> &IofQData::getCVSetQvalues() const {
+    return cv_qvalues;
+}
+
 const std::vector<float> &IofQData::getQvalues() const {
     return qvalues;
 }
@@ -362,7 +399,94 @@ const std::vector<Datum> &IofQData::getWorkingSet() const {
     return workingSet;
 }
 
+const std::vector<Datum> &IofQData::getCVSet() const {
+    return cvSet;
+}
+
 const std::vector<Datum> &IofQData::getWorkingSetSmoothed() const {
     return workingSetSmoothed;
 }
 
+/*
+ * make cross-validation set from intensities that are not in workingset
+ */
+void IofQData::makeCVSet() {
+
+    std::random_device rd;
+    std::mt19937 gen(rd());
+
+    if (!cvSet.empty()){
+        cvSet.clear();
+    }
+
+    auto deltaQ = (float)(M_PI/dmax); // for N_s => 1
+    const auto pQ = x_data.data();
+
+    const float half_width = 0.5f*deltaQ;
+    auto ns = (unsigned int)std::ceil(qmax*dmax/M_PI);
+
+    SASTOOLS_UTILS_H::logger("", "Making Cross-Validated Set");
+    unsigned startIndex=0;
+    unsigned int ns_start = ((pQ[0] > deltaQ)) ? 2 : 1;
+
+    // throw exception or warning
+    std::vector<unsigned int> indices;
+
+    // making terrible assumptions on the data - should really come up with a better algorithm that scales with actual uncertainties
+    std::vector<unsigned int> selectedIndices;
+
+    for(unsigned int n=ns_start; n<=ns; n++){ // iterate over the shannon indices
+
+        float startq = (n==1) ? 0 : (deltaQ*(float)n - half_width); // sample points on either side of q = n*PI/dmax
+        float endQ = deltaQ*(float)n + half_width;
+
+        indices.clear();
+        bool sample = false;
+
+        for(unsigned int i=startIndex; i < total_data_points; i++){
+
+            // get points closest to Shannon number
+            if (pQ[i] > startq && pQ[i] <= endQ && !intensities[i]){
+                indices.push_back(i);
+                sample = true;
+            }
+
+            if (pQ[i] > endQ){
+                startIndex = i;
+                break;
+            }
+        }
+
+        if (sample){
+            std::shuffle(indices.begin(), indices.end(), gen);
+            auto select = &points_to_sample_per_shannon_bin[n];
+            int totalIn = indices.size(); // might be too few points given some have been allocated to working set
+            if (*select > totalIn){ // add half - incase too few points in shannon box
+                auto stophalf = (unsigned int)std::ceil(totalIn/2);
+                std::sort(indices.begin(), indices.begin()+stophalf);
+                for(unsigned int s=0;s<stophalf; s++){
+                    selectedIndices.push_back(indices[s]);
+                }
+            } else {
+                std::sort(indices.begin(), indices.begin()+*select);
+                for(unsigned int s=0;s<*select; s++){
+                    selectedIndices.push_back(indices[s]);
+                }
+            }
+        }
+    }
+
+    // using selected indices, form the CV dataset
+    for(auto & value : selectedIndices){
+        cvSet.emplace_back(Datum(x_data[value], y_data[value], sigma_data[value], value));
+    }
+
+    cvSetSize = (unsigned int)cvSet.size();
+    cv_qvalues.resize(cvSetSize);
+
+    // after making working set, stored q-values are reassigned to working set q-values
+    for(unsigned int m=0; m < cvSetSize; m++){
+        cv_qvalues[m] = cvSet[m].getQ();
+    } //
+
+}

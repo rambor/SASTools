@@ -26,6 +26,13 @@ public:
     bool isPr = true;
 
 protected:
+    DataBase() = default;
+    DataBase(DataBase const &) = default;
+    DataBase(DataBase &&) = default;
+    // Prevent assigning DataBase base class instance.
+    DataBase& operator=(DataBase const&) = default;
+    // Prevent moving DataBase base class instance.
+    DataBase& operator=(DataBase&&) = default;
 
     FileClass * base_file;
     Score * score;
@@ -39,10 +46,10 @@ protected:
     std::string units;
 
 public:
-    DataBase() = default;
+
     DataBase(std::string file, std::string xtag, std::string ytag) : base_file(new FileClass(std::move(file))), x_tag(std::move(xtag)), y_tag(std::move(ytag)) {}
 
-    virtual ~DataBase() = default;
+    virtual ~DataBase() = default; // base class destructor
 
     virtual DataBase * clone() const = 0;
 

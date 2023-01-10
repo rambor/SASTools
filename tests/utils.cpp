@@ -87,6 +87,15 @@ TEST(UtilsTest, validatePofRFile){
     ASSERT_TRUE(validatePofRFile(fixture(30S_0p22_pr.dat)));
 }
 
+
+TEST(UtilsTest, validateMasses){
+    //std::string testfile = fixture("30S_0p22_pr.dat");
+    unsigned int atom = 6;
+    ASSERT_NEAR(getAtomicMass(atom), 12.011, 0.002);
+    ASSERT_NEAR(getAtomicMass(99), 18.01528, 0.00001);
+}
+
+
 TEST(UtilsTest, testConversionOfOxygenToAtomicNumberFromRNA){
 
     FileClass proteinFile( fixture(p4p6.pdb) );

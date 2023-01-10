@@ -47,6 +47,7 @@ struct DminType {
     float average_dmin;
 };
 
+float getAtomicMass(unsigned int atomicNumber);
 float asf ( unsigned int atomicNumber, float q);
 
 float assignOccupancy (  std::string  * neighboringAtom, std::string * neighboringResi);

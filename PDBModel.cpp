@@ -40,11 +40,16 @@ void PDBModel::extractCoordinates() {
     boost::regex wat("HOH");
     boost::regex pdbX("-*[0-9]+.[0-9]+");
     boost::regex numberFormat("[0-9]+.[0-9]+");
-    boost::regex ifHydrogen("H[A-Z]+");
+    boost::regex ifHydrogen("^[ ]?H['A-GI-Z0-9]['A-GI-Z0-9]?"); // match any character
+
     boost::regex edgeRadiusFormat("EDGE RADIUS"); // important for Iketama modeling
 
-    SASTOOLS_UTILS_H::logger("READING PDB FILEX", base_file.getFullPath());
+    SASTOOLS_UTILS_H::logger("READING PDB FILE", base_file.getFullPath());
     volume = 0.0f;
+    float tempvol;
+
+    unsigned int rejected_total=0;
+
     if (scxFile.is_open()) {
         std::string line, tempResi, alt;
         while(!scxFile.eof()) {
@@ -56,6 +61,7 @@ void PDBModel::extractCoordinates() {
                 boost::split(contents, line, boost::is_any_of("\t  "), boost::token_compress_on);
                 auto it = std::find(contents.begin(), contents.end(), "RADIUS");
                 auto index = (unsigned int)std::distance(contents.begin(), it) + 1;
+
                 for(unsigned int i=index; i<contents.size(); i++){
                     if (boost::regex_search(contents[i], numberFormat)){
                         edge_radius = std::strtof(contents[i].c_str(), nullptr);
@@ -76,20 +82,27 @@ void PDBModel::extractCoordinates() {
 
             // string::substring(position,length)
             // Check if line starts with ATOM or HETATM and exclude hydrogens
-            if ((line.length() > 50 && (boost::regex_search(line.substr(0, 6), pdbStart) || boost::regex_search(line.substr(0, 6), hetatm)) && !boost::regex_search(line.substr(17,3), wat)) && boost::regex_search(line.substr(31,8),pdbX) && !boost::regex_search(line.substr(12,4), ifHydrogen)) {
+
+            if ((line.length() > 50 && (boost::regex_search(line.substr(0, 6), pdbStart) ||
+            boost::regex_search(line.substr(0, 6), hetatm)) &&
+            !boost::regex_search(line.substr(17,3), wat)) &&
+            boost::regex_search(line.substr(31,8),pdbX) &&
+            !boost::regex_search(line.substr(12,4), ifHydrogen)) {
+
                 x.push_back(std::strtof(line.substr(30,8).c_str(), nullptr));
                 y.push_back(std::strtof(line.substr(38,8).c_str(), nullptr));
                 z.push_back(std::strtof(line.substr(46,8).c_str(), nullptr));
 
                 //Atom type taken from rows 13-16 needs to be converted to the actual atom, e.g., CB1 is C
                 atomType.push_back(line.substr(12,4));// needs to be this way until atomic numbers are assigned
-                alt = line.substr(12,4);
-                trimWhiteSpace(alt);
-                uniqAtomTypes.insert(alt);
+//                alt = line.substr(12,4);
+//                trimWhiteSpace(alt);
+                uniqAtomTypes.insert(alt); // container is a set, holds only unique entries
 
                 // residue name, three letter for protein, two for nucleic acids
                 alt = line.substr(16,1);
                 trimWhiteSpace(alt);
+
                 tempResi = line.substr(17,3);
 
                 // reassign residue abbreviations for RNA
@@ -123,14 +136,31 @@ void PDBModel::extractCoordinates() {
                 occupancies.push_back(1.0f); // use this as an occupancy
 //                vdWRadii.push_back(vdWradius);
 //                atomicRadii.push_back((float)std::cbrt(atomVolume[fileLength]*0.75/M_PI));
-                float vdWradius, atomicNumber;
-                volume += residueToVolume( atomType.back(), tempResi, &vdWradius, &atomicNumber);
+                float vdWradius;
+                int atomicNumber;
+
+                // tempResi must be converted to proper residue name if forcing to be RNA or DNA
+                if (ifRNA){  // A => ALA, G => GLY, C => CYS
+                    std::string * pString = &resi[fileLength];
+                    forceRNAResidue(*pString);
+                    tempResi = *pString;
+                }
+
+                tempvol = residueToVolume( atomType.back(), tempResi, &vdWradius, &atomicNumber);
+
+                volume += tempvol;
+                atomVolume.push_back(tempvol);
                 atomicRadii.push_back(vdWradius);
                 atomNumbers.push_back(atomicNumber);
                 // should properly calculate
                 fileLength++;
             } else if (!discardWaters && line.length() > 20 && (line.substr(17,3) == "HOH")) {
                 waterLines.push_back(line);
+            } else {
+                if (boost::regex_search(line.substr(0, 6), pdbStart) || boost::regex_search(line.substr(0, 6), hetatm)){
+                    std::cout << "NOT PARSED ::  " << line << std::endl;
+                    rejected_total++;
+                }
             }
             // keep HETATM flag - say you have a heme?
             // WATERS r in lines containing HETATM
@@ -141,19 +171,34 @@ void PDBModel::extractCoordinates() {
         totalWatersInExcludedVolume = (unsigned int)std::ceil(volume/29.9f);
         fractionalWaterOccupancy = (float)totalWatersInExcludedVolume/(float)totalAtoms;
 
+//        if (ifRNA){  // A => ALA, G => GLY, C => CYS
+//            std::string * pResi = resi.data();
+//            for(unsigned int i=0; i<fileLength; i++){
+//                std::string & pString = pResi[i];
+//                forceRNAResidue(pString);
+//            }
+//        }
+
         if (ifRNA){  // A => ALA, G => GLY, C => CYS
-            std::string * pResi = resi.data();
-            for(unsigned int i=0; i<fileLength; i++){
-                std::string & pString = pResi[i];
-                forceRNAResidue(pString);
+            for(auto & val : atomType){
+                if (val==" O1P"){
+                    val = " OP1";
+                } else if (val==" O2P"){
+                    val = " OP2";
+                } else if (val==" O3P"){
+                    val = " OP3";
+                }
             }
         }
+
 
         centeredX = new float[totalAtoms];
         centeredY = new float[totalAtoms];
         centeredZ = new float[totalAtoms];
 
-        SASTOOLS_UTILS_H::logger("TOTAL ATOMS", std::to_string(totalAtoms));
+        SASTOOLS_UTILS_H::logger("TOTAL ATOMS IN USE", std::to_string(totalAtoms));
+        SASTOOLS_UTILS_H::logger("TOTAL ATOMS REJECTED", std::to_string(rejected_total));
+
         std::sprintf(stringBuffer, "%.1f", volume);
         SASTOOLS_UTILS_H::logger("ALGEBRAIC VOLUME", stringBuffer);
         SASTOOLS_UTILS_H::logger("TOTAL WATERS IN EXCLUDED VOLUME", std::to_string(totalWatersInExcludedVolume));
@@ -182,7 +227,16 @@ void PDBModel::forceRNAResidue(std::string & residue){
         residue = " rU";
     } else if ((residue == "  C") || (residue == "CYT") || (residue == " rC") || (residue == "C  ")) {
         residue = " rC";
+    } else if ((residue == "DA") || (residue == " dA")){
+        residue = " DA";
+    } else if ((residue == "DG") || (residue == " dG")) {
+        residue = " DG";
+    } else if ((residue == "DT") || (residue == " dT")) {
+        residue = " DT";
+    } else if ((residue == "DC") || (residue == " dC")) {
+        residue = " DC";
     }
+
 }
 
 
@@ -204,10 +258,10 @@ void PDBModel::convertAtomTypes(int index_of_atom_type){
  * @param residue
  * @return
  */
-float PDBModel::residueToVolume(std::string atom_type, std::string residue, float * vdwradius, float * atomic_number) {
+float PDBModel::residueToVolume(std::string atom_type, std::string residue, float * vdwradius, int * atomic_number) {
     float tempVolume = 0.0f;
     float radii = 0.0f;
-    float atomicNumber = 1;
+    int atomicNumber = 1;
 
     boost::algorithm::trim(atom_type);
     boost::algorithm::trim(residue);
@@ -505,7 +559,7 @@ float PDBModel::residueToVolume(std::string atom_type, std::string residue, floa
             radii = 1.46;
             atomicNumber = 8;
         }
-    } else if ((((residue).compare("rU") == 0) && (residue).length() == 2) || (((residue).compare("U") == 0) && (residue).length() == 1)){
+    } else if (((residue.compare("rU") == 0) && residue.length() == 2) || ((residue.compare("U") == 0) && residue.length() == 1)){
         //tempVolume = 286.255;
         if (atom_type == "N1") {
             tempVolume = 8.801;
@@ -1968,7 +2022,9 @@ bool PDBModel::isBackbone(unsigned int index) {
     }
 }
 
-
+/*
+ * removes leading and lagging whites spaces from text
+ */
 void PDBModel::trimWhiteSpace(std::string &text) {
     text.erase(text.begin(), std::find_if(text.begin(), text.end(), [](int ch) {
         return !std::isspace(ch);
@@ -2065,6 +2121,48 @@ void PDBModel::setSMax(){
     }
 
     smax = sqrt(smax);
+}
+
+
+float PDBModel::calculateMW(){
+
+    float total=0.0f;
+    int total_c=0;
+    int total_n=0;
+    int total_o=0;
+    int total_s=0;
+
+    for(auto at : atomNumbers){
+
+        total += getAtomicMass(at);
+
+        if (at == 6 ){
+            total_c+=1;
+        }
+        if (at == 7 ){
+            total_n+=1;
+        }
+        if (at == 8 ){
+            total_o+=1;
+        }
+        if (at == 16 ){
+            total_s+=1;
+        }
+    }
+
+    std::cout << " C " << total_c << std::endl;
+    std::cout << " N " << total_n << std::endl;
+    std::cout << " O" << total_o << std::endl;
+    std::cout << " S" << total_s << std::endl;
+    return total;
+}
+
+
+bool PDBModel::checkHydrogen(std::string val) {
+
+    boost::regex ifHydrogen("H[A-Z0-9]?+");
+
+    return false;
 }
 
 
