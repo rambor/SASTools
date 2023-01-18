@@ -173,8 +173,8 @@ void IofQData::makeWorkingSet(){
     // making terrible assumptions on the data - should really come up with a better algorithm that scales with actual uncertainties
     //std::vector<unsigned int> pointsPerBin(ns+1);
     points_to_sample_per_shannon_bin.resize(ns+1);
-    std::vector<unsigned int> selectedIndices;
 
+    selectedIndices.clear();
     /*
      * set target number of points per bin
      */

@@ -50,6 +50,7 @@ class IofQData : public DataBase {
     std::vector<float> invVarianceWorkingSet;
     std::vector <float> qvalues;
     std::vector <float> cv_qvalues;
+    std::vector<unsigned int> selectedIndices;
     unsigned int workingSetSize, cvSetSize;
 
 public:
@@ -101,6 +102,8 @@ public:
         invVarianceWorkingSet = std::move(model.invVarianceWorkingSet);
         qvalues = std::move(model.qvalues);
         cv_qvalues = std::move(model.cv_qvalues);
+        selectedIndices = std::move(model.selectedIndices);
+
         workingSetSize = model.workingSetSize;
         cvSetSize = model.cvSetSize;
 
@@ -162,6 +165,10 @@ public:
     unsigned int getTotalInWorkingSet(){ return workingSetSize; }
 
     void makeCVSet();
+
+    const std::vector<unsigned int> & getSelectedIndices () const {
+        return selectedIndices;
+    }
 };
 
 
