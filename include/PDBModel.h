@@ -31,12 +31,13 @@ class PDBModel : public Model {
     std::vector < std::string > atomType, resi, trimmedAtomType, trimmedResi, chainID, waterLines;
 
     std::set<std::string> segIDresID, uniqAtomTypes;
-    std::map<std::string, std::string> residToResidue;
+    std::map<std::string, std::string> residToResidue; // key is concatenation of resid and chain
     std::map<std::string, unsigned int> alternateAtoms;
+    std::map<std::string, unsigned int> residueToHydrogen;
 
     bool found_edge_radius=false;
     float edge_radius=0.0;
-    unsigned int totalResidues, waterCount, watersPerResidue, totalWatersInExcludedVolume;
+    unsigned int totalResidues, waterCount, watersPerResidue, totalWatersInExcludedVolume, totalHydrogens;
     float volume=0.0f, dmax, fractionalWaterOccupancy, smax; // smax is the radius of the sphere than encloses centered object
     std::vector<float> occupancies, atomVolume, atomicRadii;
     std::vector<int> atomNumbers;
@@ -73,6 +74,7 @@ public:
         uniqAtomTypes = std::move(model.uniqAtomTypes);
         residToResidue = std::move(model.residToResidue);
         alternateAtoms = std::move(model.alternateAtoms);
+        residueToHydrogen = std::move(model.residueToHydrogen);
 
         discardWaters = model.discardWaters;
         ifRNA = model.ifRNA;
@@ -84,6 +86,7 @@ public:
         waterCount = model.waterCount;
         watersPerResidue = model.watersPerResidue;
         totalWatersInExcludedVolume = model.totalWatersInExcludedVolume;
+        totalHydrogens = model.totalHydrogens;
         
         volume = model.volume;
         dmax = model.dmax;
@@ -229,6 +232,40 @@ public:
     bool checkHydrogen(std::string val);
 
     float calculateMW();
+
+    unsigned int getTotalHydrogens(){ return totalHydrogens;}
+
+    unsigned int getTotalResidues(){ return totalResidues;}
+
+    std::map<std::string, std::string> & getResIDToResidue(){ return residToResidue;}
+
+    void calculateTotalHydrogens();
+
+    unsigned int getNumberOfHydrogensForResidue(std::string res){
+        auto pTag = residueToHydrogen.find(res);
+
+        if (pTag != residueToHydrogen.end()){
+            return pTag->second;
+        } else {
+            return 0;
+        }
+    }
+
+    bool ifCarbon(std::string val){
+        boost::regex ifCarbon("^[ ]?C['A-Z0-9]?+");
+        // boost::regex ifHydrogen("^[ ]?H['A-GI-Z0-9]['A-GI-Z0-9]?"); // match any character
+        return  (boost::regex_search(val, ifCarbon));
+    }
+
+    bool ifNitrogen(std::string val){
+        boost::regex ifAtom("^[ ]?N['A-Z0-9]?+");
+        return  (boost::regex_search(val, ifAtom));
+    }
+
+    bool ifOxygen(std::string val){
+        boost::regex ifAtom("^[ ]?O['A-Z0-9]?+");
+        return  (boost::regex_search(val, ifAtom));
+    }
 };
 
 

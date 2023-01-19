@@ -177,6 +177,55 @@ TEST_F(PDBModelTests, checkForHydrogens){
     EXPECT_TRUE(boost::regex_search(three.substr(12,4), ifHydrogen)) <<  " :: " << three.substr(12,4) ;
 }
 
+
+TEST_F(PDBModelTests, calculateHydrogenTests){
+
+    unsigned int totalH = bsaModel.getTotalHydrogens();
+
+    auto totalEstimatedH = (unsigned int)(bsaModel.getTotalResidues()*9.75);
+
+    auto & residues = bsaModel.getResIDToResidue();
+
+    std::map<std::string, int> residueCounts;
+    for (auto & res : residues){
+        auto iter = residueCounts.find(res.second);
+        if (iter == residueCounts.end()){
+            residueCounts[res.second] = 1;
+        } else {
+            iter->second += 1;
+        }
+    }
+
+    unsigned int totalHH = 0;
+
+    for (auto & res : residueCounts){
+        std::cout << res.first << " " << res.second << std::endl;
+
+        totalHH += bsaModel.getNumberOfHydrogensForResidue(res.first)*res.second;
+    }
+
+    EXPECT_EQ(totalH, totalHH) << " :: not equal getting " << totalH << " " << totalHH ;
+}
+
+TEST_F(PDBModelTests, ifCarbonTest){
+    EXPECT_TRUE(p4p6RNAModel.ifCarbon("C1D"));
+    EXPECT_FALSE(p4p6RNAModel.ifCarbon("NC"));
+}
+
+TEST_F(PDBModelTests, ifNitrogenTest){
+    EXPECT_TRUE(p4p6RNAModel.ifNitrogen("NC"));
+    EXPECT_TRUE(p4p6RNAModel.ifNitrogen("NB"));
+    EXPECT_TRUE(p4p6RNAModel.ifNitrogen("N1"));
+    EXPECT_FALSE(p4p6RNAModel.ifNitrogen("C1D"));
+}
+
+TEST_F(PDBModelTests, ifOxygenTest){
+    EXPECT_TRUE(p4p6RNAModel.ifOxygen("O1D"));
+    EXPECT_TRUE(p4p6RNAModel.ifOxygen("O1'"));
+    EXPECT_TRUE(p4p6RNAModel.ifOxygen(" O'"));
+    EXPECT_FALSE(p4p6RNAModel.ifOxygen("NC"));
+}
+
 TEST_F(PDBModelTests, validateRNAResidue){
     std::string res = "  A";
     p4p6RNAModel.forceRNAResidue(res);

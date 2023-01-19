@@ -17,6 +17,50 @@
 
 PDBModel::PDBModel(const std::string &file, bool discardWaters, bool isRNA) : Model(file), discardWaters(discardWaters), ifRNA(isRNA) {
     this->extractCoordinates();
+
+    totalHydrogens = 0;
+    // need to add MSE, CSE, and PYL
+    residueToHydrogen.emplace("GLY", 5);
+    residueToHydrogen.emplace("ARG", 14);
+    residueToHydrogen.emplace("LEU", 13);
+    residueToHydrogen.emplace("VAL", 11);
+    residueToHydrogen.emplace("ILE", 13);
+    residueToHydrogen.emplace("ALA", 7);
+    residueToHydrogen.emplace("TRP", 12);
+    residueToHydrogen.emplace("TYR", 11);
+    residueToHydrogen.emplace("PHE", 11);
+    residueToHydrogen.emplace("GLU", 9);
+    residueToHydrogen.emplace("GLN", 10);
+    residueToHydrogen.emplace("CYS", 7);
+    residueToHydrogen.emplace("CSE", 7);
+    residueToHydrogen.emplace("HIS", 9);
+    residueToHydrogen.emplace("MET", 11);
+    residueToHydrogen.emplace("MSE", 11);
+    residueToHydrogen.emplace("ASP", 7);
+    residueToHydrogen.emplace("PRO", 9);
+    residueToHydrogen.emplace("SER", 7);
+    residueToHydrogen.emplace("ASN", 8);
+    residueToHydrogen.emplace("THR", 9);
+    residueToHydrogen.emplace("LYS", 12);
+    residueToHydrogen.emplace("PYL", 21);
+    residueToHydrogen.emplace("rA",14);
+    residueToHydrogen.emplace("A",14);
+    residueToHydrogen.emplace("rG",14);
+    residueToHydrogen.emplace("G",14);
+    residueToHydrogen.emplace("rC",14);
+    residueToHydrogen.emplace("C",14);
+    residueToHydrogen.emplace("rU",13);
+    residueToHydrogen.emplace("U",13);
+    residueToHydrogen.emplace("DT",13);
+    residueToHydrogen.emplace("dT",13);
+    residueToHydrogen.emplace("DA",14);
+    residueToHydrogen.emplace("dA",14);
+    residueToHydrogen.emplace("DG",14);
+    residueToHydrogen.emplace("dG",14);
+    residueToHydrogen.emplace("DC",14);
+    residueToHydrogen.emplace("dC",14);
+
+    calculateTotalHydrogens();
 }
 
 
@@ -82,7 +126,6 @@ void PDBModel::extractCoordinates() {
 
             // string::substring(position,length)
             // Check if line starts with ATOM or HETATM and exclude hydrogens
-
             if ((line.length() > 50 && (boost::regex_search(line.substr(0, 6), pdbStart) ||
             boost::regex_search(line.substr(0, 6), hetatm)) &&
             !boost::regex_search(line.substr(17,3), wat)) &&
@@ -115,7 +158,7 @@ void PDBModel::extractCoordinates() {
                 chainID.push_back(line.substr(21,1));
 
                 std::string temptag = line.substr(21,1) + tempID;
-                segIDresID.insert(temptag); // give unique chain-resid
+                segIDresID.insert(temptag); // give unique chain-resid string
                 residToResidue.emplace(temptag, tempResi); // chain-resid <-> residue
 
                 if (alt.length() > 0){
@@ -214,6 +257,7 @@ void PDBModel::extractCoordinates() {
     std::sprintf(stringBuffer, "%.1f", dmax);
     SASTOOLS_UTILS_H::logger("DMAX", stringBuffer);
 
+    totalResidues = residToResidue.size();
 //    std::sprintf(stringBuffer, "%.1f", smax);
 //    SASTOOLS_UTILS_H::logger("SMAX", stringBuffer);
 }
@@ -251,9 +295,10 @@ void PDBModel::convertAtomTypes(int index_of_atom_type){
 
 /**
  * Computes volume of the atom with respect to its residue, volumes were tabulated by Gerstein (Yale)
- * vdW radii from
+ * vdW radii from JMB Tsai, Taylor Chothia, Gerstein JMB (1999) 290, 253-266
  * Volume occupied by single water is 29.9 A^3.
- *
+ * The presence of hydrogens are implied and the atomic volumes assume the volumes include hydrogens
+ * If using explicit hydrogen model, must set volume of H to zero to prevent double counting volume
  * @param atom_type
  * @param residue
  * @return
@@ -1894,11 +1939,11 @@ float PDBModel::residueToVolume(std::string atom_type, std::string residue, floa
         std::string tempAtom = std::string(atom_type);
         boost::algorithm::trim(tempAtom);
 
-        if ((tempAtom == "N") || (tempAtom == "N1") || (tempAtom == "N2") || (tempAtom == "N3") || (tempAtom == "N4") || (tempAtom == "N5") || (tempAtom == "N6") || (tempAtom == "N7") || (tempAtom == "N8") || (tempAtom == "N9")  ) {
+        if (ifNitrogen(atom_type) || (tempAtom == "N") || (tempAtom == "N1") || (tempAtom == "N2") || (tempAtom == "N3") || (tempAtom == "N4") || (tempAtom == "N5") || (tempAtom == "N6") || (tempAtom == "N7") || (tempAtom == "N8") || (tempAtom == "N9")  ) {
             tempVolume = 13.429;
             radii = 1.70;
             atomicNumber = 7;
-        } else if (tempAtom == "CA" || tempAtom == "C1" || tempAtom == "C2" || tempAtom == "C3" || tempAtom == "C4" || tempAtom == "C5" || tempAtom =="C6") {
+        } else if (ifCarbon(atom_type) || tempAtom == "CA" || tempAtom == "C1" || tempAtom == "C2" || tempAtom == "C3" || tempAtom == "C4" || tempAtom == "C5" || tempAtom =="C6") {
             tempVolume = 13.217;
             radii = 1.9;
             atomicNumber = 6;
@@ -1906,7 +1951,7 @@ float PDBModel::residueToVolume(std::string atom_type, std::string residue, floa
             tempVolume = 8.696;
             radii = 1.75;
             atomicNumber = 6;
-        } else if (tempAtom == "O" || tempAtom == "O1" || tempAtom == "O2" || tempAtom == "O3" || tempAtom == "O4" || tempAtom == "O5" || tempAtom == "O6" || tempAtom == "OH" || tempAtom == "OE") {
+        } else if (ifOxygen(atom_type) || tempAtom == "O" || tempAtom == "O1" || tempAtom == "O2" || tempAtom == "O3" || tempAtom == "O4" || tempAtom == "O5" || tempAtom == "O6" || tempAtom == "OH" || tempAtom == "OE") {
             tempVolume = 15.818;
             radii = 1.54;
             atomicNumber = 8;
@@ -1958,16 +2003,10 @@ float PDBModel::residueToVolume(std::string atom_type, std::string residue, floa
             tempVolume = 16.21; // median of first two
             radii = 1.46;
             atomicNumber = 8;
-        } else if (atom_type == "OP3") {
+        } else {
             tempVolume = 16.21;
             radii = 1.46;
             atomicNumber = 8;
-        } else {
-            tempVolume = 0;
-            // if atom_type has matching C assume carbon
-            // if atom_type has matching O assume oxygen
-            // if atom_type has matching N assume nitrogen
-            // if atom_type has matching P assume phosphate
         }
 
         SASTOOLS_UTILS_H::logger(residue + " volume", std::to_string(tempVolume));
@@ -2163,6 +2202,20 @@ bool PDBModel::checkHydrogen(std::string val) {
     boost::regex ifHydrogen("H[A-Z0-9]?+");
 
     return false;
+}
+
+void PDBModel::calculateTotalHydrogens(){
+
+    totalHydrogens = 0;
+
+    for(auto & res : residToResidue){
+
+        auto pTag = residueToHydrogen.find(res.second);
+
+        if (pTag != residueToHydrogen.end()){
+            totalHydrogens += pTag->second;
+        }
+    }
 }
 
 
