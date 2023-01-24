@@ -304,12 +304,12 @@ void IofQData::makeWorkingSet(){
     workingSetSize = (unsigned int)workingSet.size();
 
     // create vector of qvalues
-    qvalues.resize(workingSetSize);
+    workingSetQvalues.resize(workingSetSize);
     invVarianceWorkingSet.resize(workingSetSize);
 
     // after making working set, stored q-values are reassigned to working set q-values
     for(unsigned int m=0; m < workingSetSize; m++){
-        qvalues[m] = workingSet[m].getQ();
+        workingSetQvalues[m] = workingSet[m].getQ();
         invVarianceWorkingSet[m] = workingSet[m].getInvVar();
     } // write workingSet to File
 }
@@ -320,11 +320,11 @@ void IofQData::setScoringFunction(unsigned int maxBin) {
      * calculate sin(qr)/qr for all bins
      */
     sinc_qr.clear();
-    unsigned int workingSetSize = qvalues.size();
+    unsigned int workingSetSize = workingSetQvalues.size();
 
     std::cout << "  SCORING FUNCTION => CHI-SQUARE " << std::endl;
     for (unsigned int q = 0; q < workingSetSize; q++) {
-        float qValue = qvalues[q];
+        float qValue = workingSetQvalues[q];
         for (unsigned int i=0; i < maxBin; i++) { // for fixed q value, iterate over all possible bins in P(r)
             float rvalue = bin_width*i + 0.5f*bin_width;
             float qr = qValue*rvalue;
@@ -391,8 +391,8 @@ const std::vector<float> &IofQData::getCVSetQvalues() const {
     return cv_qvalues;
 }
 
-const std::vector<float> &IofQData::getQvalues() const {
-    return qvalues;
+const std::vector<float> &IofQData::getWorkingSetQvalues() const {
+    return workingSetQvalues;
 }
 
 const std::vector<Datum> &IofQData::getWorkingSet() const {

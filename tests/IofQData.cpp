@@ -80,7 +80,7 @@ TEST_F(IofQDataTests, testMakeCVSet){
 
     // test that each value in CVset are not in workingset
     auto cvqvalues = iofqdata.getCVSetQvalues();
-    auto qvalues = iofqdata.getQvalues();
+    auto qvalues = iofqdata.getWorkingSetQvalues();
 
     unsigned int totalcv = cvqvalues.size();
 

@@ -48,7 +48,7 @@ class IofQData : public DataBase {
     std::vector<unsigned int> points_per_signal_to_noise;
     std::vector<unsigned int> points_to_sample_per_shannon_bin;
     std::vector<float> invVarianceWorkingSet;
-    std::vector <float> qvalues;
+    std::vector <float> workingSetQvalues;
     std::vector <float> cv_qvalues;
     std::vector<unsigned int> selectedIndices;
     unsigned int workingSetSize, cvSetSize;
@@ -100,7 +100,7 @@ public:
         points_per_signal_to_noise = std::move(model.points_per_signal_to_noise);
         points_to_sample_per_shannon_bin = std::move(model.points_to_sample_per_shannon_bin);
         invVarianceWorkingSet = std::move(model.invVarianceWorkingSet);
-        qvalues = std::move(model.qvalues);
+        workingSetQvalues = std::move(model.workingSetQvalues);
         cv_qvalues = std::move(model.cv_qvalues);
         selectedIndices = std::move(model.selectedIndices);
 
@@ -154,7 +154,7 @@ public:
      * If working set has been invoked, q-values maps to working set q-values
      * @return
      */
-    const std::vector<float> &getQvalues() const;
+    const std::vector<float> &getWorkingSetQvalues() const;
 
     const std::vector<float> &getCVSetQvalues() const;
 
