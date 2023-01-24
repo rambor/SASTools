@@ -156,6 +156,19 @@ public:
      */
     const std::vector<float> &getWorkingSetQvalues() const;
 
+    const std::vector<float> &getQvalues() const {
+        return x_data;
+    }
+
+    const std::vector<float> &getIValues() const {
+        return y_data;
+    }
+
+    const std::vector<float> &getSigmaValues() const {
+        return sigma_data;
+    }
+
+
     const std::vector<float> &getCVSetQvalues() const;
 
     const std::vector<Datum> &getWorkingSet() const;
@@ -169,6 +182,8 @@ public:
     const std::vector<unsigned int> & getSelectedIndices () const {
         return selectedIndices;
     }
+
+
 };
 
 
