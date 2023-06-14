@@ -266,6 +266,8 @@ public:
         boost::regex ifAtom("^[ ]?O['A-Z0-9]?+");
         return  (boost::regex_search(val, ifAtom));
     }
+
+    float getVolume(){ return volume;}
 };
 
 

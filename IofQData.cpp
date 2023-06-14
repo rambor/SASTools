@@ -217,9 +217,18 @@ void IofQData::makeWorkingSet(){
                  count_sum += 1.0f;
             }
             avg_signal_to_noise_per_shannon_bin[n] = sum/count_sum;
+        } else {
+            avg_signal_to_noise_per_shannon_bin[n] = 0;
         }
     }
+    // if avg_signal_to_noise_per_shannon_bin
+    if (avg_signal_to_noise_per_shannon_bin[ns] <= 0.0001){
+        avg_signal_to_noise_per_shannon_bin.pop_back();
+        signal_to_noise_per_point.pop_back();
+        ns--;
+    }
 
+    char buffer [50];
     /*
      * assign the number of points per bin for the data
      */
@@ -240,8 +249,11 @@ void IofQData::makeWorkingSet(){
             }
             counter++;
         }
-        logger("SIGNAL-To-NOISE ["+std::to_string(n)+"]", formatNumber(avg_signal_to_noise_per_shannon_bin[n], 2));
-        logger("POINTS PER BIN ["+std::to_string(n) + "]",std::to_string(points_to_sample_per_shannon_bin[n]));
+
+        std::sprintf (buffer, "%3d %3d %10.2f", n, points_to_sample_per_shannon_bin[n], avg_signal_to_noise_per_shannon_bin[n]);
+        //std::string gt = "["+std::to_string(n)+"] " + std::to_string(points_to_sample_per_shannon_bin[n]) + " " + formatNumber(avg_signal_to_noise_per_shannon_bin[n], 2);
+        logger("BIN POINTS S/N", std::string(buffer));
+
     }
 
     // reset start index
