@@ -38,6 +38,7 @@
 class IofQData : public DataBase {
 
     bool convert = false;
+    std::string header;
     std::vector<float> sinc_qr;
     std::vector<bool> intensities;
     std::vector<bool> useMe;
@@ -45,6 +46,7 @@ class IofQData : public DataBase {
     std::vector<Datum> cvSet;
     std::vector<Datum> workingSetSmoothed;
     std::vector<float> signal_to_noise_per_point;
+    std::vector<float> avg_signal_to_noise_per_shannon_bin;
     std::vector<unsigned int> points_per_signal_to_noise;
     std::vector<unsigned int> points_to_sample_per_shannon_bin;
     std::vector<float> invVarianceWorkingSet;
@@ -52,6 +54,9 @@ class IofQData : public DataBase {
     std::vector <float> cv_qvalues;
     std::vector<unsigned int> selectedIndices;
     unsigned int workingSetSize, cvSetSize;
+
+    // collated_indices
+    std::map<unsigned int, std::vector<unsigned int>> collated_indices;
 
 public:
 
@@ -90,6 +95,7 @@ public:
         units = model.units;
 
         convert = model.convert;
+        header = model.header;
         sinc_qr = std::move(model.sinc_qr);
         intensities = std::move(model.intensities);
         useMe = std::move(model.useMe);
@@ -97,6 +103,8 @@ public:
         cvSet = std::move(model.cvSet);
         workingSetSmoothed = std::move(model.workingSetSmoothed);
         signal_to_noise_per_point = std::move(model.signal_to_noise_per_point);
+        avg_signal_to_noise_per_shannon_bin = std::move(model.avg_signal_to_noise_per_shannon_bin);
+
         points_per_signal_to_noise = std::move(model.points_per_signal_to_noise);
         points_to_sample_per_shannon_bin = std::move(model.points_to_sample_per_shannon_bin);
         invVarianceWorkingSet = std::move(model.invVarianceWorkingSet);
@@ -106,6 +114,8 @@ public:
 
         workingSetSize = model.workingSetSize;
         cvSetSize = model.cvSetSize;
+
+        collated_indices = std::move(model.collated_indices);
 
         return *this;
     }
@@ -184,6 +194,64 @@ public:
     }
 
 
+    void createPointsPerBinHeader(){
+
+        char buffer[50];
+
+        header = "# REMARK           :: POINTS [S-to-N]\n";
+        int ns = avg_signal_to_noise_per_shannon_bin.size();
+        for(unsigned int n=1; n<=ns; n++){
+            std::sprintf (buffer, "# REMARK   BIN %3d ::   %3d  [%10.2f] \n", n, points_to_sample_per_shannon_bin[n], avg_signal_to_noise_per_shannon_bin[n]);
+            header.append(buffer);
+        }
+    }
+
+    std::string getHeader(){
+        createPointsPerBinHeader();
+        return header;
+    }
+
+    int assignPointsPerBinForWorkingSet();
+
+    void partitionIndices(unsigned int ns, float deltaQ);
+
+
+    void setAllDataToWorkingSet(){
+
+        intensities.resize(total_data_points);
+        selectedIndices.resize(total_data_points);
+
+        for(unsigned int i=0; i<total_data_points; i++){
+            intensities[i] = true;
+            selectedIndices[i] = i;
+        }
+
+
+        if (!workingSet.empty()){
+            workingSet.clear();
+            workingSetSmoothed.clear();
+        }
+
+
+        for (unsigned int i = 0; i < total_data_points; i++){
+            workingSet.emplace_back(Datum(x_data[i], y_data[i], sigma_data[i], i));
+            workingSetSmoothed.emplace_back(Datum(x_data[i], y_calc[i], sigma_data[i], i));
+        }
+
+        workingSetSize = (unsigned int)workingSet.size();
+
+        // create vector of qvalues
+        workingSetQvalues.resize(workingSetSize);
+        invVarianceWorkingSet.resize(workingSetSize);
+
+        // after making working set, stored q-values are reassigned to working set q-values
+        int m=0;
+        for (auto & ws : workingSet){
+            workingSetQvalues[m] = ws.getQ();
+            invVarianceWorkingSet[m] = ws.getInvVar();
+            m++;
+        }
+    }
 };
 
 

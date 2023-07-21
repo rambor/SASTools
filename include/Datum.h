@@ -59,14 +59,14 @@ public:
         if (&model == this)
             return *this;
 
-        q = model.q;
-        iofq = model.iofq;
-        sigma = model.sigma;
-        index = model.index;
-        icalc = model.icalc;
-        var = model.var;
-        invvar = model.invvar;
-        type = model.type;
+        q = std::move(model.q);
+        iofq = std::move(model.iofq);
+        sigma = std::move(model.sigma);
+        index = std::move(model.index);
+        icalc = std::move(model.icalc);
+        var = std::move(model.var);
+        invvar = std::move(model.invvar);
+        type = std::move(model.type);
 
         return *this;
     }

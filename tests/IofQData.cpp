@@ -58,17 +58,29 @@ TEST_F(IofQDataTests, testMakeWorkingSet){
     iofqdata.extractData();
     iofqdata.makeWorkingSet();
 
-    EXPECT_EQ(iofqdata.getTotal(), 1124);
+    auto & data = iofqdata.getWorkingSet();
+    int total = data.size();
+
+//    for(auto & datum : data){
+//        std::cout << datum.getQ() << " " << datum.getI() << std::endl;
+//    }
+
+    EXPECT_EQ(total, 88);
 }
 
 TEST_F(IofQDataTests, testMakeWorkingSetManyTimes){
 
     iofqdata.extractData();
+
     for(int i=0; i<101; i++){
         iofqdata.makeWorkingSet();
     }
 
+    auto & data = iofqdata.getWorkingSet();
+    int total = data.size();
+
     EXPECT_EQ(iofqdata.getTotal(), 1124);
+    EXPECT_EQ(total, 88);
 }
 
 

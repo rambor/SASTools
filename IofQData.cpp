@@ -26,11 +26,14 @@ IofQData::IofQData(std::string filename, bool convertToAngstromsFromNM) :
     signal_to_noise_per_point.push_back(10.0);
     signal_to_noise_per_point.push_back(1.8);
     signal_to_noise_per_point.push_back(0.0f);
+
     // may not be import for fitting smoothed data - only for Durbin Watson
-    points_per_signal_to_noise.push_back(4);
-    points_per_signal_to_noise.push_back(5);
-    points_per_signal_to_noise.push_back(7);
-    points_per_signal_to_noise.push_back(19);
+    //points per signal must be even
+    points_per_signal_to_noise.push_back(6);
+    points_per_signal_to_noise.push_back(8);
+    points_per_signal_to_noise.push_back(12);
+    points_per_signal_to_noise.push_back(22);
+
 }
 
 std::string IofQData::getFilename() {
@@ -55,6 +58,7 @@ void IofQData::extractData() {
         std::string line;
 
         total_data_points = 0;
+        dmax = 0;
         while(!data.eof()) //
         {
             getline(data, line); //this function grabs a line and moves to next line in file
@@ -125,6 +129,12 @@ void IofQData::extractData() {
         logger("QMIN", formatNumber(qmin, 5));
         logger("QMAX", formatNumber(qmax, 5));
         logger("Total DataPoints", std::to_string(total_data_points));
+
+
+        if (dmax > 0){
+            partitionIndices((unsigned int)std::ceil(qmax*dmax/M_PI), (float)(M_PI/dmax));
+            int ns = assignPointsPerBinForWorkingSet();
+        }
     }
 }
 
@@ -146,161 +156,234 @@ void IofQData::makeWorkingSet(int value){
     // may not be import for fitting smoothed data - only for Durbin Watson
     int count = 0;
     for (auto & pp : points_per_signal_to_noise){
-        pp *= (value*(count*0.16666667f + 0.5f));
+        pp *= (unsigned int)((float)value*((float)count*0.16666667f + 0.5f));
         ++count;
     }
 
     this->makeWorkingSet();
 }
 
-// m
-// akes a working set using the entire set of data
+// makes a working set using the entire set of data
 void IofQData::makeWorkingSet(){
+
     std::random_device rd;
     std::mt19937 gen(rd());
-
-    auto deltaQ = (float)(M_PI/dmax); // determines location of first shannon point, i.e, N_s => 1
-    const float half_width = 0.5f*deltaQ; // look at points surrounding the Shannon point
-
-    auto ns = (unsigned int)std::ceil(qmax*dmax/M_PI);
-    std::vector<float> avg_signal_to_noise_per_shannon_bin(ns+1);
-
+//
+//    auto deltaQ = (float)(M_PI/dmax); // determines location of first shannon point, i.e, N_s => 1
+//    const float half_width = 0.5f*deltaQ; // look at points surrounding the Shannon point
+//
+//    auto ns = (unsigned int)std::ceil(qmax*dmax/M_PI);
+//    avg_signal_to_noise_per_shannon_bin.resize(ns+1);
+//
     const auto pQ = x_data.data();
 
-    // throw exception or warning
-    std::vector<unsigned int> indices;
-
-    // making terrible assumptions on the data - should really come up with a better algorithm that scales with actual uncertainties
-    //std::vector<unsigned int> pointsPerBin(ns+1);
-    points_to_sample_per_shannon_bin.resize(ns+1);
-
-    selectedIndices.clear();
-    /*
-     * set target number of points per bin
-     */
-    intensities.reserve(total_data_points); // everything not in use is cross-validated set
+//
+//    // throw exception or warning
+//    std::vector<unsigned int> indices;
+//
+//    // making terrible assumptions on the data - should really come up with a better algorithm that scales with actual uncertainties
+//    //std::vector<unsigned int> pointsPerBin(ns+1);
+//    points_to_sample_per_shannon_bin.resize(ns+1);
+//
+//    /*
+//     * set target number of points per bin
+//     */
+    intensities.resize(total_data_points); // everything not in use is cross-validated set
     for(unsigned int i=0; i<total_data_points; i++){
         intensities[i] = false;
     }
+//
+//
+//    unsigned int startIndex=0;
+//    unsigned int ns_start = ((pQ[0] > deltaQ)) ? 2 : 1;
+//    for(unsigned int n=ns_start; n<=ns; n++){ // iterate over the shannon indices
+//
+//        float startq = (n==1) ? 0 : (deltaQ*(float)n - half_width);
+//        float endQ = deltaQ*(float)n + half_width;
+//
+//        indices.clear();
+//        bool sample = false;
+//
+//        for(unsigned int i=startIndex; i < total_data_points; i++){
+//
+//            // get points closest to Shannon number
+//            if (pQ[i] > startq && pQ[i] <= endQ){
+//                indices.push_back(i);
+//                sample = true;
+//            }
+//
+//            if (pQ[i] > endQ){
+//                startIndex = i;
+//                break;
+//            }
+//        }
+//
+//        if (sample){
+//            // determine average signal to noise in bin
+//            float count_sum = 0.0f;
+//            float sum = 0.0f;
+//            for(auto in : indices){
+//                 sum += std::abs(y_data[in]/sigma_data[in]);
+//                 count_sum += 1.0f;
+//            }
+//            avg_signal_to_noise_per_shannon_bin[n] = sum/count_sum;
+//        } else {
+//            avg_signal_to_noise_per_shannon_bin[n] = 0;
+//        }
+//    }
+//    // if avg_signal_to_noise_per_shannon_bin
+//    if (avg_signal_to_noise_per_shannon_bin[ns] <= 0.0001){
+//        avg_signal_to_noise_per_shannon_bin.pop_back();
+//        signal_to_noise_per_point.pop_back();
+//        points_to_sample_per_shannon_bin.resize(signal_to_noise_per_point.size());
+//        ns--;
+//    }
+//
+//    /*
+//     * assign the number of points per bin for the data
+//     */
+//    for(unsigned int n=1; n<=ns; n++){
+//        //std::cout << n << " S-to-N " << signal_to_noise[n] << std::endl;
+//        float sn = avg_signal_to_noise_per_shannon_bin[n];
+//        int counter = 0;
+//        for(auto & limit : signal_to_noise_per_point){
+//            /*
+//            signal_to_noise_per_point.push_back(100.0);
+//            signal_to_noise_per_point.push_back(10.0);
+//            signal_to_noise_per_point.push_back(1.8);
+//            signal_to_noise_per_point.push_back(0.0f);
+//             */
+//            if (sn > limit || sn < 0){ // negative intensities might happen
+//                points_to_sample_per_shannon_bin[n] = points_per_signal_to_noise[counter];
+//                break;
+//            }
+//            counter++;
+//        }
+//    }
 
-//    std::vector<float> signal_to_noise(ns+1);
-    unsigned int startIndex=0;
-    unsigned int ns_start = ((pQ[0] > deltaQ)) ? 2 : 1;
-    for(unsigned int n=ns_start; n<=ns; n++){ // iterate over the shannon indices
-
-        float startq = (n==1) ? 0 : (deltaQ*(float)n - half_width);
-        float endQ = deltaQ*(float)n + half_width;
-
-        indices.clear();
-        bool sample = false;
-
-        for(unsigned int i=startIndex; i < total_data_points; i++){
-
-            // get points closest to Shannon number
-            if (pQ[i] > startq && pQ[i] <= endQ){
-                indices.push_back(i);
-                sample = true;
-            }
-
-            if (pQ[i] > endQ){
-                startIndex = i;
-                break;
-            }
-        }
-
-        if (sample){
-            // determine average signal to noise in bin
-            float count_sum = 0.0f;
-            float sum = 0.0f;
-            for(auto in : indices){
-                 sum += std::abs(y_data[in]/sigma_data[in]);
-                 count_sum += 1.0f;
-            }
-            avg_signal_to_noise_per_shannon_bin[n] = sum/count_sum;
-        } else {
-            avg_signal_to_noise_per_shannon_bin[n] = 0;
-        }
-    }
-    // if avg_signal_to_noise_per_shannon_bin
-    if (avg_signal_to_noise_per_shannon_bin[ns] <= 0.0001){
-        avg_signal_to_noise_per_shannon_bin.pop_back();
-        signal_to_noise_per_point.pop_back();
-        ns--;
-    }
-
-    char buffer [50];
-    /*
-     * assign the number of points per bin for the data
-     */
-    for(unsigned int n=1; n<=ns; n++){
-        //std::cout << n << " S-to-N " << signal_to_noise[n] << std::endl;
-        float sn = avg_signal_to_noise_per_shannon_bin[n];
-        int counter = 0;
-        for(auto & limit : signal_to_noise_per_point){
-            /*
-            signal_to_noise_per_point.push_back(100.0);
-            signal_to_noise_per_point.push_back(10.0);
-            signal_to_noise_per_point.push_back(1.8);
-            signal_to_noise_per_point.push_back(0.0f);
-             */
-            if (sn > limit || sn < 0){ // negative intensities might happen
-                points_to_sample_per_shannon_bin[n] = points_per_signal_to_noise[counter];
-                break;
-            }
-            counter++;
-        }
-
-        std::sprintf (buffer, "%3d %3d %10.2f", n, points_to_sample_per_shannon_bin[n], avg_signal_to_noise_per_shannon_bin[n]);
-        //std::string gt = "["+std::to_string(n)+"] " + std::to_string(points_to_sample_per_shannon_bin[n]) + " " + formatNumber(avg_signal_to_noise_per_shannon_bin[n], 2);
-        logger("BIN POINTS S/N", std::string(buffer));
-
-    }
+//    int ns = assignPointsPerBinForWorkingSet();
 
     // reset start index
+    selectedIndices.clear();
     SASTOOLS_UTILS_H::logger("", "Making Working Set");
-    startIndex=0;
-    for(unsigned int n=ns_start; n<=ns; n++){ // iterate over the shannon indices
+    //startIndex=0;
+//    for(unsigned int n=ns_start; n<=ns; n++){ // iterate over the shannon indices
 
-        float startq = (n==1) ? 0 : (deltaQ*(float)n - half_width); // sample points on either side of q = n*PI/dmax
-        float endQ = deltaQ*(float)n + half_width;
+//        float startq = (n==1) ? 0 : (deltaQ*(float)n - half_width); // sample points on either side of q = n*PI/dmax
+//        float endQ = deltaQ*(float)n + half_width;
+//
+//        collated_indices[n] = std::vector<unsigned int>();
+//        std::vector<unsigned int> & indices = collated_indices[n];
 
-        indices.clear();
-        bool sample = false;
+        //indices.clear();
+        //bool sample = false;
 
-        for(unsigned int i=startIndex; i < total_data_points; i++){
+        //collect the indices that are specific to the Shannon Channel
 
-            // get points closest to Shannon number
-            if (pQ[i] > startq && pQ[i] <= endQ){
-                indices.push_back(i);
-                sample = true;
-            }
 
-            if (pQ[i] > endQ){
-                startIndex = i;
-                break;
-            }
-        }
+//        for(unsigned int i=startIndex; i < total_data_points; i++){
+//
+//            // get points closest to Shannon number
+//            if (pQ[i] > startq && pQ[i] <= endQ){
+//                indices.push_back(i);
+//                sample = true;
+//            }
+//
+//            if (pQ[i] > endQ){
+//                startIndex = i;
+//                break;
+//            }
+//        }
+//
+//        if (sample){
+//            std::shuffle(indices.begin(), indices.end(), gen);
+//            auto select = &points_to_sample_per_shannon_bin[n];
+//            int totalIn = indices.size();
+//            if (*select > totalIn){ // add half - incase too few points in shannon box
+//                auto stophalf = (unsigned int)std::ceil(totalIn/2);
+//                std::sort(indices.begin(), indices.begin()+stophalf);
+//                for(unsigned int s=0;s<stophalf; s++){
+//                    selectedIndices.push_back(indices[s]);
+//                    intensities[indices[s]] = true;
+//                }
+//            } else {
+//                std::sort(indices.begin(), indices.begin()+*select);
+//                for(unsigned int s=0;s<*select; s++){
+//                    selectedIndices.push_back(indices[s]);
+//                    intensities[indices[s]] = true;
+//                }
+//            }
+//        }
+//    }
 
-        if (sample){
-            std::shuffle(indices.begin(), indices.end(), gen);
-            auto select = &points_to_sample_per_shannon_bin[n];
-            int totalIn = indices.size();
+    const float factor = M_PI/dmax;
+    std::vector<unsigned int> keepers;
+
+    for(auto & channel : collated_indices){
+
+        if (!channel.second.empty()){
+
+            std::shuffle(channel.second.begin(), channel.second.end(), gen);
+            auto select = &points_to_sample_per_shannon_bin[channel.first];
+            int totalIn = channel.second.size();
+
             if (*select > totalIn){ // add half - incase too few points in shannon box
-                auto stophalf = (unsigned int)std::ceil(totalIn/2);
-                std::sort(indices.begin(), indices.begin()+stophalf);
-                for(unsigned int s=0;s<stophalf; s++){
-                    selectedIndices.push_back(indices[s]);
-                    intensities[indices[s]] = true;
+
+                auto stophalf = (unsigned int)std::ceil(totalIn*0.666667);
+                std::sort(channel.second.begin(), channel.second.begin()+stophalf);
+                for(unsigned int s=0; s<stophalf; s++){
+                    selectedIndices.push_back(channel.second[s]);
+                    intensities[channel.second[s]] = true;
                 }
+
             } else {
-                std::sort(indices.begin(), indices.begin()+*select);
-                for(unsigned int s=0;s<*select; s++){
-                    selectedIndices.push_back(indices[s]);
-                    intensities[indices[s]] = true;
+                // find points before and after channel
+                float shannon_channel = channel.first*factor;
+
+                keepers.clear();
+                int halfway = *select/2;
+
+                unsigned int counter = 0;
+                for(auto & val : channel.second) {
+
+                    float qval = pQ[val];
+
+                    if (qval < shannon_channel) {
+                        keepers.push_back(val);
+                        counter++;
+                        if (counter == halfway) {
+                            break;
+                        }
+                    }
                 }
+
+                for(auto & val : channel.second){
+
+                    float qval = pQ[val];
+
+                    if (qval > shannon_channel){
+                        keepers.push_back(val);
+                        counter++;
+                        if (counter >= *select){
+                            break;
+                        }
+                    }
+                }
+
+                std::sort(keepers.begin(), keepers.end());
+                for(unsigned int s=0;s<*select; s++){
+                    selectedIndices.push_back(keepers[s]);
+                    intensities[keepers[s]] = true;
+                }
+//                std::sort(channel.second.begin(), channel.second.begin()+*select);
+//                for(unsigned int s=0;s<*select; s++){
+//                    selectedIndices.push_back(channel.second[s]);
+//                    intensities[channel.second[s]] = true;
+//                }
             }
         }
     }
+
 
     if (!workingSet.empty()){
         workingSet.clear();
@@ -320,10 +403,165 @@ void IofQData::makeWorkingSet(){
     invVarianceWorkingSet.resize(workingSetSize);
 
     // after making working set, stored q-values are reassigned to working set q-values
-    for(unsigned int m=0; m < workingSetSize; m++){
-        workingSetQvalues[m] = workingSet[m].getQ();
-        invVarianceWorkingSet[m] = workingSet[m].getInvVar();
-    } // write workingSet to File
+    int m=0;
+    for (auto & ws : workingSet){
+        workingSetQvalues[m] = ws.getQ();
+        invVarianceWorkingSet[m] = ws.getInvVar();
+        m++;
+    }
+
+}
+
+void IofQData::partitionIndices(unsigned int ns, float deltaQ) {
+
+    const float half_width = 0.5f*deltaQ; // look at points surrounding the Shannon point
+    unsigned int  startIndex=0;
+    const auto pQ = x_data.data();
+    unsigned int ns_start = ((pQ[0] > deltaQ)) ? 2 : 1;
+
+    for(unsigned int n=ns_start; n<=ns; n++){ // iterate over the shannon indices
+
+        float startq = (n==1) ? 0 : (deltaQ*(float)n - half_width); // sample points on either side of q = n*PI/dmax
+        float endQ = deltaQ*(float)n + half_width;
+
+        collated_indices[n] = std::vector<unsigned int>();
+        std::vector<unsigned int> & indices = collated_indices[n];
+
+        //collect the indices that are specific to the Shannon Channel
+        for(unsigned int i=startIndex; i < total_data_points; i++){
+
+            // get points closest to Shannon number
+            float * val = &pQ[i];
+            if (*val > startq && *val <= endQ){
+                indices.push_back(i);
+            }
+
+            if (*val > endQ){
+                startIndex = i;
+                break;
+            }
+        }
+    }
+
+//    for(auto & pp : collated_indices){
+//        auto & vec = pp.second;
+//        std::cout << pp.first << " => SIZE :: " << vec.size() << std::endl;
+//    }
+
+}
+
+// Need to populate points_to_sample_per_shannon_bin which tells us how many q-values we need
+int IofQData::assignPointsPerBinForWorkingSet(){
+
+    //auto deltaQ = (float)(M_PI/dmax); // determines location of first shannon point, i.e, N_s => 1
+    //const float half_width = 0.5f*deltaQ; // look at points surrounding the Shannon point
+
+    auto ns = (unsigned int)std::ceil(qmax*dmax/M_PI);
+    avg_signal_to_noise_per_shannon_bin.resize(ns+1);
+
+    //const auto pQ = x_data.data();
+    // throw exception or warning
+    //std::vector<unsigned int> indices;
+
+    // making terrible assumptions on the data - should really come up with a better algorithm that scales with actual uncertainties
+    //std::vector<unsigned int> pointsPerBin(ns+1);
+    points_to_sample_per_shannon_bin.resize(ns+1);
+    selectedIndices.clear();
+
+    if (collated_indices.empty()){
+        partitionIndices((unsigned int)std::ceil(qmax*dmax/M_PI), (float)(M_PI/dmax));
+    }
+
+    // determine the average signal-to-noise in each shannon channel
+    for (auto & cc : collated_indices) { // collated indices could have last as empty
+
+        if (!cc.second.empty()) {
+            // determine average signal to noise in bin
+            float count_sum = 0.0f;
+            float sum = 0.0f;
+            for (auto in: cc.second) {
+                sum += std::abs(y_data[in] / sigma_data[in]);
+                count_sum += 1.0f;
+            }
+            avg_signal_to_noise_per_shannon_bin[cc.first] = sum / count_sum;
+        } else {
+            avg_signal_to_noise_per_shannon_bin[cc.first] = 0;
+        }
+    }
+
+//    unsigned int startIndex=0;
+//    unsigned int ns_start = ((pQ[0] > deltaQ)) ? 2 : 1;
+//    for(unsigned int n=ns_start; n<=ns; n++){ // iterate over the shannon indices
+//
+//        float startq = (n==1) ? 0 : (deltaQ*(float)n - half_width);
+//        float endQ = deltaQ*(float)n + half_width;
+//
+//        indices.clear();
+//        bool sample = false;
+//
+//        for(unsigned int i=startIndex; i < total_data_points; i++){
+//
+//            // get points closest to Shannon number
+//            if (pQ[i] > startq && pQ[i] <= endQ){
+//                indices.push_back(i);
+//                sample = true;
+//            }
+//
+//            if (pQ[i] > endQ){
+//                startIndex = i;
+//                break;
+//            }
+//        }
+//
+//        if (sample){
+//            // determine average signal to noise in bin
+//            float count_sum = 0.0f;
+//            float sum = 0.0f;
+//            for(auto in : indices){
+//                sum += std::abs(y_data[in]/sigma_data[in]);
+//                count_sum += 1.0f;
+//            }
+//            avg_signal_to_noise_per_shannon_bin[n] = sum/count_sum;
+//        } else {
+//            avg_signal_to_noise_per_shannon_bin[n] = 0;
+//        }
+//    }
+
+
+    if (avg_signal_to_noise_per_shannon_bin[ns] <= 0.0001){ // check if last one is zero
+        avg_signal_to_noise_per_shannon_bin.pop_back();
+        points_to_sample_per_shannon_bin.resize(avg_signal_to_noise_per_shannon_bin.size());
+        ns--;
+    }
+
+    /*
+     * assign the number of points per bin for the data
+     */
+    for(unsigned int n=1; n<=ns; n++){
+        //std::cout << n << " S-to-N " << signal_to_noise[n] << std::endl;
+        float sn = avg_signal_to_noise_per_shannon_bin[n];
+        int counter = 0;
+        for(auto & limit : signal_to_noise_per_point){
+            /*
+            signal_to_noise_per_point.push_back(100.0);
+            signal_to_noise_per_point.push_back(10.0);
+            signal_to_noise_per_point.push_back(1.8);
+            signal_to_noise_per_point.push_back(0.0f);
+            // may not be import for fitting smoothed data - only for Durbin Watson
+            // random points on either side of Shannon channel
+             */
+            if (sn > limit || sn < 0){ // negative intensities might happen
+                points_to_sample_per_shannon_bin[n] = points_per_signal_to_noise[counter];
+                break;
+            }
+            counter++;
+        }
+        char buffer[50];
+        std::sprintf (buffer, "%3d %3d %10.2f", n, points_to_sample_per_shannon_bin[n], avg_signal_to_noise_per_shannon_bin[n]);
+        logger("BIN POINTS S/N", std::string(buffer));
+    }
+
+    return ns;
 }
 
 
