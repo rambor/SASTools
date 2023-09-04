@@ -1442,6 +1442,7 @@ float asf ( int atomicNumber, float q) {
  **/
 
 double residueToVolume(std::string atomType, std::string residue) {
+
     double volume = 0.0;
     boost::algorithm::trim(atomType);
     boost::algorithm::trim(residue);
@@ -2324,13 +2325,19 @@ double residueToVolume(std::string atomType, std::string residue) {
         // Incomplete, need to do properly
     } else {
 
-        std::cout << "\tUNKNOWN RESIDUE => " << residue << " USING GENERIC VOLUME FOR => " << atomType << std::endl;
+
         std::string tempAtom = std::string(atomType);
         boost::algorithm::trim(tempAtom);
 
+        boost::regex isCarbon("^[\\s1-9]+C['A-Z0-9]{0,3}");
+        boost::regex isCarbonNumber("C['A-Z0-9]{0,3}");
+
+        //boost::regex ifCarbon("^[0-9]+?C[0-9]+?"); // match any character
+        boost::regex ifOxygen("^[ 0-9]?O[0-9]+?"); // match any character
+
         if ((tempAtom == "N") || (tempAtom == "N1") || (tempAtom == "N2") || (tempAtom == "N3") || (tempAtom == "N4") || (tempAtom == "N5") || (tempAtom == "N6") || (tempAtom == "N7") || (tempAtom == "N8") || (tempAtom == "N9")  ) {
             volume = 13.429;
-        } else if (tempAtom == "CA" || tempAtom == "C1" || tempAtom == "C2" || tempAtom == "C3" || tempAtom == "C4" || tempAtom == "C5" || tempAtom =="C6") {
+        } else if (tempAtom == "CA" || boost::regex_match(tempAtom, isCarbonNumber)) {
             volume = 13.217;
         } else if (tempAtom == "C") {
             volume = 8.696;
@@ -2348,9 +2355,16 @@ double residueToVolume(std::string atomType, std::string residue) {
             volume = 21.413;
         } else if (tempAtom == "OXT" || tempAtom == "OT") { // taken from CRYSOL TABLE as O* (deprotonated oxygen)
             volume = 9.13;
+        } else if (boost::regex_match(tempAtom, isCarbon)){ // non-terminal, methylene like carbon
+            volume = 23.365;
+        } else if (boost::regex_match(tempAtom, ifOxygen)){ // bridging oxygen
+            volume = 17.386; // borrowed from ribose ring oxygen
         } else {
             std::cout << "|" << residue <<  "| did not find volume |" << atomType << "|" << std::endl;
+            volume = 0.0;
         }
+
+        std::cout << "\tUNKNOWN RESIDUE => " << residue << " GENERIC VOLUME => " << atomType << " :: " << volume << std::endl;
     }
 
     return volume;
