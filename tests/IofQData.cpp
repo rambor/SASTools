@@ -65,7 +65,7 @@ TEST_F(IofQDataTests, testMakeWorkingSet){
 //        std::cout << datum.getQ() << " " << datum.getI() << std::endl;
 //    }
 
-    EXPECT_EQ(total, 88);
+    EXPECT_EQ(total, 82);
 }
 
 TEST_F(IofQDataTests, testMakeWorkingSetManyTimes){
@@ -80,7 +80,7 @@ TEST_F(IofQDataTests, testMakeWorkingSetManyTimes){
     int total = data.size();
 
     EXPECT_EQ(iofqdata.getTotal(), 1124);
-    EXPECT_EQ(total, 88);
+    EXPECT_EQ(total, 82);
 }
 
 

@@ -156,7 +156,15 @@ public:
 
     double getDmax(){ return dmax;}
 
-    void setDmax(float val){ dmax = val;}
+
+    void setDmax(float val){
+        dmax = val;
+
+        if (dmax > 0){
+            partitionIndices((unsigned int)std::ceil(qmax*dmax/M_PI), (float)(M_PI/dmax));
+            int ns = assignPointsPerBinForWorkingSet();
+        }
+    }
 
     const std::vector<Datum> &getWorkingSetSmoothed() const;
 
@@ -200,7 +208,7 @@ public:
 
         header = "# REMARK           :: POINTS [S-to-N]\n";
         int ns = avg_signal_to_noise_per_shannon_bin.size();
-        for(unsigned int n=1; n<=ns; n++){
+        for(unsigned int n=1; n<ns; n++){
             std::sprintf (buffer, "# REMARK   BIN %3d ::   %3d  [%10.2f] \n", n, points_to_sample_per_shannon_bin[n], avg_signal_to_noise_per_shannon_bin[n]);
             header.append(buffer);
         }
