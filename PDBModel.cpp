@@ -1935,8 +1935,7 @@ float PDBModel::residueToVolume(std::string atom_type, std::string residue, floa
         // Need tempVolumes for residues not specified : taken from CRYSOL
         // Incomplete, need to do properly
     } else {
-        SASTOOLS_UTILS_H::logger("UNKNOWN RESIDUE", residue);
-        SASTOOLS_UTILS_H::logger("USING GENERIC VOLUME FOR ", atom_type);
+
         std::string tempAtom = std::string(atom_type);
         boost::algorithm::trim(tempAtom);
 
@@ -2018,7 +2017,8 @@ float PDBModel::residueToVolume(std::string atom_type, std::string residue, floa
             atomicNumber = 8;
         }
 
-        SASTOOLS_UTILS_H::logger(residue + " volume", std::to_string(tempVolume));
+        std::string info = " ATOM " + atom_type + " VOL -> " + std::to_string(tempVolume);
+        SASTOOLS_UTILS_H::logger("UNKNOWN RESIDUE " + residue, info);
     }
 
     *vdwradius = radii;
