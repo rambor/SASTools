@@ -208,8 +208,11 @@ TEST_F(PDBModelTests, calculateHydrogenTests){
 }
 
 TEST_F(PDBModelTests, ifCarbonTest){
-    EXPECT_TRUE(p4p6RNAModel.ifCarbon("C1D"));
-    EXPECT_FALSE(p4p6RNAModel.ifCarbon("NC"));
+
+   EXPECT_TRUE(p4p6RNAModel.ifCarbon("C1D")) << "C1D";
+   EXPECT_FALSE(p4p6RNAModel.ifCarbon("NC")) << " NC";
+    EXPECT_TRUE(p4p6RNAModel.ifCarbon("2C3")) << "2C3";
+
 }
 
 TEST_F(PDBModelTests, ifNitrogenTest){

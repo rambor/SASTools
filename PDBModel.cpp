@@ -16,6 +16,7 @@
 
 
 PDBModel::PDBModel(const std::string &file, bool discardWaters, bool isRNA) : Model(file), discardWaters(discardWaters), ifRNA(isRNA) {
+
     this->extractCoordinates();
 
     totalHydrogens = 0;
@@ -63,7 +64,9 @@ PDBModel::PDBModel(const std::string &file, bool discardWaters, bool isRNA) : Mo
     calculateTotalHydrogens();
 }
 
-
+/*
+ * if keepWaters is true, lines with HOH are kept in a String vector for parsing later
+ */
 void PDBModel::extractCoordinates() {
 
     std::ifstream scxFile (base_file.getFullPath());
@@ -84,7 +87,7 @@ void PDBModel::extractCoordinates() {
     boost::regex wat("HOH");
     boost::regex pdbX("-*[0-9]+.[0-9]+");
     boost::regex numberFormat("[0-9]+.[0-9]+");
-    boost::regex ifHydrogen("^[ ]?H['A-GI-Z0-9]['A-GI-Z0-9]?"); // match any character
+    boost::regex ifHydrogen("^[ 1-9]{0,3}H['A-GI-Z0-9]{0,3}"); // match any character
 
     boost::regex edgeRadiusFormat("EDGE RADIUS"); // important for Iketama modeling
 
@@ -138,8 +141,6 @@ void PDBModel::extractCoordinates() {
 
                 //Atom type taken from rows 13-16 needs to be converted to the actual atom, e.g., CB1 is C
                 atomType.push_back(line.substr(12,4));// needs to be this way until atomic numbers are assigned
-//                alt = line.substr(12,4);
-//                trimWhiteSpace(alt);
                 uniqAtomTypes.insert(alt); // container is a set, holds only unique entries
 
                 // residue name, three letter for protein, two for nucleic acids
@@ -201,7 +202,7 @@ void PDBModel::extractCoordinates() {
                 waterLines.push_back(line);
             } else {
                 if (boost::regex_search(line.substr(0, 6), pdbStart) || boost::regex_search(line.substr(0, 6), hetatm)){
-                    std::cout << "NOT PARSED ::  " << line << std::endl;
+                    logger("NOT PARSED", line.substr(0, 20));
                     rejected_total++;
                 }
             }
@@ -1943,7 +1944,7 @@ float PDBModel::residueToVolume(std::string atom_type, std::string residue, floa
             tempVolume = 13.429;
             radii = 1.70;
             atomicNumber = 7;
-        } else if (ifCarbon(atom_type) || tempAtom == "CA" || tempAtom == "C1" || tempAtom == "C2" || tempAtom == "C3" || tempAtom == "C4" || tempAtom == "C5" || tempAtom =="C6") {
+        } else if (ifCarbon(atom_type) &&  (tempAtom == "CA" || tempAtom == "C1" || tempAtom == "C2" || tempAtom == "C3" || tempAtom == "C4" || tempAtom == "C5" || tempAtom =="C6")) {
             tempVolume = 13.217;
             radii = 1.9;
             atomicNumber = 6;
@@ -1969,6 +1970,10 @@ float PDBModel::residueToVolume(std::string atom_type, std::string residue, floa
             atomicNumber = 6;
         } else if (tempAtom == "CE" || tempAtom == "CM" || tempAtom == "CT") {
             tempVolume = 23.720;
+            radii = 1.91;
+            atomicNumber = 6;
+        } else if (ifMethyleneCarbon(atom_type)){
+            tempVolume = 22.847;
             radii = 1.91;
             atomicNumber = 6;
         } else if (tempAtom == "NZ") {
@@ -2001,6 +2006,10 @@ float PDBModel::residueToVolume(std::string atom_type, std::string residue, floa
             atomicNumber = 8;
         } else if (atom_type == "O3P") {
             tempVolume = 16.21; // median of first two
+            radii = 1.46;
+            atomicNumber = 8;
+        } else if (ifBridgingOxygen(atom_type)){
+            tempVolume = 17.386;
             radii = 1.46;
             atomicNumber = 8;
         } else {
@@ -2169,30 +2178,39 @@ float PDBModel::calculateMW(){
     int total_c=0;
     int total_n=0;
     int total_o=0;
+    int total_p=0;
     int total_s=0;
 
     for(auto at : atomNumbers){
 
         total += getAtomicMass(at);
 
-        if (at == 6 ){
-            total_c+=1;
-        }
-        if (at == 7 ){
-            total_n+=1;
-        }
-        if (at == 8 ){
-            total_o+=1;
-        }
-        if (at == 16 ){
-            total_s+=1;
+        switch(at){
+            case 6:
+                total_c+=1;
+                break;
+            case 7:
+                total_n+=1;
+                break;
+            case 8:
+                total_o+=1;
+                break;
+            case 15:
+                total_p+=1;
+                break;
+            case 16:
+                total_s+=1;
+                break;
         }
     }
 
-    std::cout << " C " << total_c << std::endl;
-    std::cout << " N " << total_n << std::endl;
-    std::cout << " O" << total_o << std::endl;
-    std::cout << " S" << total_s << std::endl;
+    SASTOOLS_UTILS_H::logger("Total Carbon", formatNumber((unsigned int)total_c) );
+    SASTOOLS_UTILS_H::logger("Total Nitrogen", formatNumber((unsigned int)total_n) );
+    SASTOOLS_UTILS_H::logger("Total Oxygen", formatNumber((unsigned int)total_o) );
+    SASTOOLS_UTILS_H::logger("Total Phosphate", formatNumber((unsigned int)total_p) );
+    SASTOOLS_UTILS_H::logger("Total Sulfur", formatNumber((unsigned int)total_s) );
+    SASTOOLS_UTILS_H::logger("Total non-Hydrogen Mass", formatNumber((unsigned int)total) );
+
     return total;
 }
 

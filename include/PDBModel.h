@@ -203,6 +203,8 @@ public:
     const std::vector<std::string>::const_iterator getAtomTypeIterator() const { return trimmedAtomType.cbegin(); }
     const std::vector<std::string>::const_iterator getChainIDIterator() const { return chainID.cbegin(); }
 
+    const std::vector<std::string> & getWaterLines() const { return waterLines; }
+
     void moveTrimmedAtomType(std::vector<std::string> * vectorToReceive){
         *vectorToReceive = std::move(this->trimmedAtomType);
     }
@@ -251,10 +253,24 @@ public:
         }
     }
 
+    // "C1D" return true, "NC" return false
     bool ifCarbon(std::string val){
-        boost::regex ifCarbon("^[ ]?C['A-Z0-9]?+");
+
+        boost::regex isCarbon("^[\\s1-9]?C['A-Z0-9]{0,3}"); // CA could be C alpha or Calcium
+
+        boost::regex notCalcium("CA "); // "CA ", in PDB calcium is " CA"
+
+        boost::regex notCarbon("^(?![A-BD-Z])C");
+
         // boost::regex ifHydrogen("^[ ]?H['A-GI-Z0-9]['A-GI-Z0-9]?"); // match any character
-        return  (boost::regex_search(val, ifCarbon));
+        return  (boost::regex_match(val, isCarbon)) && !boost::regex_match(val, notCarbon) && !boost::regex_match(val, notCalcium);
+
+    }
+
+    bool ifMethyleneCarbon(std::string val){
+        boost::regex ifCarbon("^[0-9]+?C['A-Z0-9]?+");
+        // boost::regex ifHydrogen("^[ ]?H['A-GI-Z0-9]['A-GI-Z0-9]?"); // match any character
+        return  (boost::regex_match(val, ifCarbon));
     }
 
     bool ifNitrogen(std::string val){
@@ -264,6 +280,11 @@ public:
 
     bool ifOxygen(std::string val){
         boost::regex ifAtom("^[ ]?O['A-Z0-9]?+");
+        return  (boost::regex_search(val, ifAtom));
+    }
+
+    bool ifBridgingOxygen(std::string val){
+        boost::regex ifAtom("^[ 0-9]+?O[0-9]?");
         return  (boost::regex_search(val, ifAtom));
     }
 
