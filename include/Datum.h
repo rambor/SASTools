@@ -25,7 +25,9 @@ class Datum {
 
 public:
 
-    Datum(float q, float iofq, float sigma, unsigned int index) : q(q), iofq(iofq), sigma(sigma), index(index) {
+    Datum()=default;
+
+    Datum(float q, float iofq, float sigma, unsigned int index) : q(q), iofq(iofq), sigma(sigma), index(index), icalc(0) {
         var = sigma*sigma;
         invvar = 1.0f/var;
     }
@@ -37,6 +39,7 @@ public:
         this->invvar = dat.invvar;
         this->type = dat.type;
     }
+
     // copy assignment
     Datum & operator = (const Datum & dat) {
         if (&dat == this)
@@ -59,13 +62,13 @@ public:
         if (&model == this)
             return *this;
 
-        q = std::move(model.q);
-        iofq = std::move(model.iofq);
-        sigma = std::move(model.sigma);
-        index = std::move(model.index);
-        icalc = std::move(model.icalc);
-        var = std::move(model.var);
-        invvar = std::move(model.invvar);
+        q = model.q;
+        iofq = model.iofq;
+        sigma = model.sigma;
+        index = model.index;
+        icalc = model.icalc;
+        var = model.var;
+        invvar = model.invvar;
         type = std::move(model.type);
 
         return *this;
@@ -73,19 +76,27 @@ public:
 
     // move constructor
     Datum (Datum && model) noexcept{
-        *this = std::move(model);
+
+        q = model.q;
+        iofq = model.iofq;
+        sigma = model.sigma;
+        index = model.index;
+        icalc = model.icalc;
+        var = model.var;
+        invvar = model.invvar;
+        type = std::move(model.type);
     }
 
     ~Datum(){
 
     }
 
-    const float getQ() const {return q;}
-    const float getI() const {return iofq;}
-    const float getImodel() const {return icalc;}
-    float getSigma(){return sigma;}
-    float getVar(){return var;}
-    float getInvVar(){return invvar;}
+    float getQ() const {return q;}
+    float getI() const {return iofq;}
+    float getImodel() const {return icalc;}
+    float getSigma() const {return sigma;}
+    float getVar() const {return var;}
+    float getInvVar() const {return invvar;}
 
     const unsigned int getIndex() const {
         return index;
