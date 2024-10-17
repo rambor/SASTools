@@ -51,7 +51,7 @@ public:
 
     virtual ~DataBase() = default; // base class destructor
 
-    virtual DataBase * clone() const = 0;
+    virtual DataBase * clone() const = 0; // uses the copy constructor
 
     virtual std::string getFilename() = 0;    // "= 0" part makes this method pure virtual, and
 
@@ -67,6 +67,7 @@ public:
     virtual bool validate(std::string message)=0;
 
     unsigned int getTotal(){ return total_data_points;}
+
 
     float getRg(){ return rg; }
     float getRgSigma(){ return rg_sigma;}

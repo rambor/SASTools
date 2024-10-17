@@ -21,7 +21,7 @@
 #include "Score.h"
 
 /*
-    * Functor to calculate score based on Pr distributin
+    * Functor to calculate score based on Pr distribution
     * Functor is set in Annealing program
     */
 class RealSpaceScore : public Score {
@@ -74,7 +74,7 @@ public:
 
         // zeroBin should have at least one value
 
-        double penalty = 0.0d;
+        double penalty = 0.0;
         if (emptyBins == 1){
             penalty = 1.1;
         } else if (emptyBins > 1){

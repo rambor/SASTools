@@ -67,7 +67,8 @@ public:
 
     // copy constructor - prevent copying
     IofQData(const IofQData & model)= default;
-//    // copy assignment - prevent copying
+
+    // copy assignment - prevent copying
     IofQData & operator=(const IofQData & model)= default;
 
     // move assignment operator
@@ -77,8 +78,19 @@ public:
             return *this;
         }
 
+
+        rg = model.rg;
+        rg_sigma = model.rg;
+        izero = model.izero;
+        izero_sigma = model.izero_sigma;
+        volume = model.volume;
+        qmax = model.qmax;
+        qmin = model.qmin;
+        isPr = model.isPr;
+
         std::swap(base_file, model.base_file);
         std::swap(score, model.score);
+
         x_tag = model.x_tag;
         y_tag = model.y_tag;
         x_data = std::move(model.x_data);
@@ -129,6 +141,7 @@ public:
     ~IofQData() override {
 
         delete base_file;
+
         if (score == nullptr){
             delete score;
         }
@@ -162,7 +175,7 @@ public:
 
         if (dmax > 0){
             partitionIndices((unsigned int)std::ceil(qmax*dmax/M_PI), (float)(M_PI/dmax));
-            int ns = assignPointsPerBinForWorkingSet();
+            assignPointsPerBinForWorkingSet();
         }
     }
 
@@ -173,6 +186,8 @@ public:
      * @return
      */
     const std::vector<float> &getWorkingSetQvalues() const;
+
+    void truncateToQmax(float value);
 
     const std::vector<float> &getQvalues() const {
         return x_data;
@@ -207,7 +222,7 @@ public:
         char buffer[50];
 
         header = "# REMARK           :: POINTS [S-to-N]\n";
-        int ns = avg_signal_to_noise_per_shannon_bin.size();
+        unsigned int ns = avg_signal_to_noise_per_shannon_bin.size();
         for(unsigned int n=1; n<ns; n++){
             std::sprintf (buffer, "# REMARK   BIN %3d ::   %3d  [%10.2f] \n", n, points_to_sample_per_shannon_bin[n], avg_signal_to_noise_per_shannon_bin[n]);
             header.append(buffer);
@@ -219,7 +234,7 @@ public:
         return header;
     }
 
-    int assignPointsPerBinForWorkingSet();
+    void assignPointsPerBinForWorkingSet();
 
     void partitionIndices(unsigned int ns, float deltaQ);
 
@@ -234,31 +249,33 @@ public:
             selectedIndices[i] = i;
         }
 
-
         if (!workingSet.empty()){
             workingSet.clear();
             workingSetSmoothed.clear();
         }
 
-
-        for (unsigned int i = 0; i < total_data_points; i++){
-            workingSet.emplace_back(Datum(x_data[i], y_data[i], sigma_data[i], i));
-            workingSetSmoothed.emplace_back(Datum(x_data[i], y_calc[i], sigma_data[i], i));
-        }
-
-        workingSetSize = (unsigned int)workingSet.size();
-
-        // create vector of qvalues
+        workingSetSize = total_data_points;
         workingSetQvalues.resize(workingSetSize);
         invVarianceWorkingSet.resize(workingSetSize);
 
-        // after making working set, stored q-values are reassigned to working set q-values
-        int m=0;
-        for (auto & ws : workingSet){
-            workingSetQvalues[m] = ws.getQ();
-            invVarianceWorkingSet[m] = ws.getInvVar();
-            m++;
+        for (unsigned int i = 0; i < total_data_points; i++){
+            float * qval = &x_data[i];
+            float * sig = &sigma_data[i];
+            workingSet.emplace_back(Datum(*qval, y_data[i], *sig, i));
+            workingSetSmoothed.emplace_back(Datum(*qval, y_calc[i], *sig, i));
+            workingSetQvalues[i] = *qval;
+            invVarianceWorkingSet[i] = workingSet[i].getInvVar();
         }
+
+//        workingSetSize = (unsigned int)workingSet.size();
+        // create vector of qvalues
+        // after making working set, stored q-values are reassigned to working set q-values
+//        int m=0;
+//        for (auto & ws : workingSet){
+//            workingSetQvalues[m] = ws.getQ();
+//            invVarianceWorkingSet[m] = ws.getInvVar();
+//            m++;
+//        }
     }
 };
 

@@ -132,7 +132,7 @@ void IofQData::extractData() {
 
         if (dmax > 0){
             partitionIndices((unsigned int)std::ceil(qmax*dmax/M_PI), (float)(M_PI/dmax));
-            int ns = assignPointsPerBinForWorkingSet();
+            assignPointsPerBinForWorkingSet();
         }
     }
 
@@ -169,13 +169,7 @@ void IofQData::makeWorkingSet(){
 
     std::random_device rd;
     std::mt19937 gen(rd());
-//
-//    auto deltaQ = (float)(M_PI/dmax); // determines location of first shannon point, i.e, N_s => 1
-//    const float half_width = 0.5f*deltaQ; // look at points surrounding the Shannon point
-//
-//    auto ns = (unsigned int)std::ceil(qmax*dmax/M_PI);
-//    avg_signal_to_noise_per_shannon_bin.resize(ns+1);
-//
+
     const auto pQ = x_data.data();
 
     for(unsigned int i=0; i<total_data_points; i++){
@@ -262,9 +256,12 @@ void IofQData::makeWorkingSet(){
     }
 
     for(auto & value : selectedIndices){
-        workingSet.emplace_back(Datum(x_data[value], y_data[value], sigma_data[value], value));
+        float * qval = &x_data[value];
+        float * sig = &sigma_data[value];
+
+        workingSet.emplace_back(Datum(*qval, y_data[value], *sig, value));
         // workingSetSmoothed uses value from IFT
-        workingSetSmoothed.emplace_back(Datum(x_data[value], y_calc[value], sigma_data[value], value));
+        workingSetSmoothed.emplace_back(Datum(*qval, y_calc[value], *sig, value));
     }
 
     workingSetSize = (unsigned int)workingSet.size();
@@ -321,13 +318,14 @@ void IofQData::partitionIndices(unsigned int ns, float deltaQ) {
 //        sum += vec.size();
 //
 //        for(auto & ii : vec){
-//            std::cout << pp.first << " => :: " << ii << std::endl;
+//            std::cout << pp.first << " => :: " << ii << " " << total_data_points << std::endl;
 //        }
 //    }
+
 }
 
 // Need to populate points_to_sample_per_shannon_bin which tells us how many q-values we need
-int IofQData::assignPointsPerBinForWorkingSet(){
+void IofQData::assignPointsPerBinForWorkingSet(){
 
     //auto deltaQ = (float)(M_PI/dmax); // determines location of first shannon point, i.e, N_s => 1
     //const float half_width = 0.5f*deltaQ; // look at points surrounding the Shannon point
@@ -365,6 +363,8 @@ int IofQData::assignPointsPerBinForWorkingSet(){
         }
     }
 
+
+
 //    unsigned int startIndex=0;
 //    unsigned int ns_start = ((pQ[0] > deltaQ)) ? 2 : 1;
 //    for(unsigned int n=ns_start; n<=ns; n++){ // iterate over the shannon indices
@@ -401,8 +401,7 @@ int IofQData::assignPointsPerBinForWorkingSet(){
 //        } else {
 //            avg_signal_to_noise_per_shannon_bin[n] = 0;
 //        }
-//    }
-
+//
 
     if (avg_signal_to_noise_per_shannon_bin[ns] <= 0.0001){ // check if last one is zero
         avg_signal_to_noise_per_shannon_bin.pop_back();
@@ -433,11 +432,11 @@ int IofQData::assignPointsPerBinForWorkingSet(){
             counter++;
         }
         char buffer[50];
-        std::sprintf (buffer, "%3d %3d %10.2f", n, points_to_sample_per_shannon_bin[n], avg_signal_to_noise_per_shannon_bin[n]);
+        std::sprintf (buffer, "%3d %3d %10.2f %3d", n, points_to_sample_per_shannon_bin[n], avg_signal_to_noise_per_shannon_bin[n], ns);
         logger("BIN POINTS S/N", std::string(buffer));
     }
 
-    return ns;
+    shannon_bins = (float)ns;
 }
 
 
@@ -533,6 +532,44 @@ const std::vector<Datum> &IofQData::getWorkingSetSmoothed() const {
     return workingSetSmoothed;
 }
 
+
+void IofQData::truncateToQmax(float value){
+
+    logger("Truncating data", formatNumber(value, 5));
+
+    total_data_points = 0;
+
+    unsigned int stop_at =0;
+    for(unsigned int i=0; i<x_data.size(); i++){
+        if (x_data[i] > value){
+            stop_at = i;
+            break;
+        }
+    }
+
+    x_data.resize(stop_at);
+    y_data.resize(stop_at);
+    sigma_data.resize(stop_at);
+
+    if (y_calc.size() > stop_at){
+        y_calc.resize(stop_at);
+    }
+
+    total_data_points = stop_at;
+    qmax = x_data[total_data_points-1];
+
+    logger("QMIN", formatNumber(qmin, 5));
+    logger("QMAX", formatNumber(qmax, 5));
+    logger("Total DataPoints", std::to_string(total_data_points));
+
+    if (dmax > 0){
+        partitionIndices((unsigned int)std::ceil(qmax*dmax/M_PI), (float)(M_PI/dmax));
+        assignPointsPerBinForWorkingSet();
+    }
+
+    intensities.resize(total_data_points); // everything not in use is cross-validated set
+}
+
 /*
  * make cross-validation set from intensities that are not in workingset
  */
@@ -586,7 +623,7 @@ void IofQData::makeCVSet() {
         if (sample){
             std::shuffle(indices.begin(), indices.end(), gen);
             auto select = &points_to_sample_per_shannon_bin[n];
-            int totalIn = indices.size(); // might be too few points given some have been allocated to working set
+            unsigned int totalIn = indices.size(); // might be too few points given some have been allocated to working set
             if (*select > totalIn){ // add half - incase too few points in shannon box
                 auto stophalf = (unsigned int)std::ceil(totalIn/2);
                 std::sort(indices.begin(), indices.begin()+stophalf);

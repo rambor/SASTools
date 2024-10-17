@@ -120,3 +120,12 @@ TEST_F(IofQDataTests, testMakeCVSet){
 
     }
 }
+
+
+TEST_F(IofQDataTests, testTruncateToQmax){
+
+    iofqdata.extractData();
+    iofqdata.truncateToQmax(0.2);
+
+    ASSERT_EQ(iofqdata.getTotal(), 685);
+}

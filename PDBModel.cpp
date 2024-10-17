@@ -33,8 +33,12 @@ PDBModel::PDBModel(const std::string &file, bool discardWaters, bool isRNA) : Mo
     residueToHydrogen.emplace("GLU", 9);
     residueToHydrogen.emplace("GLN", 10);
     residueToHydrogen.emplace("CYS", 7);
+    residueToHydrogen.emplace("CYX", 7);
     residueToHydrogen.emplace("CSE", 7);
     residueToHydrogen.emplace("HIS", 9);
+    residueToHydrogen.emplace("HIP", 9);
+    residueToHydrogen.emplace("HID", 9);
+    residueToHydrogen.emplace("HIE", 9);
     residueToHydrogen.emplace("MET", 11);
     residueToHydrogen.emplace("MSE", 11);
     residueToHydrogen.emplace("ASP", 7);
@@ -61,7 +65,9 @@ PDBModel::PDBModel(const std::string &file, bool discardWaters, bool isRNA) : Mo
     residueToHydrogen.emplace("DC",14);
     residueToHydrogen.emplace("dC",14);
 
+    this->calculateMW();
     calculateTotalHydrogens();
+    mw += totalHydrogens;
 }
 
 /*
@@ -180,8 +186,7 @@ void PDBModel::extractCoordinates() {
                 occupancies.push_back(1.0f); // use this as an occupancy
 //                vdWRadii.push_back(vdWradius);
 //                atomicRadii.push_back((float)std::cbrt(atomVolume[fileLength]*0.75/M_PI));
-                float vdWradius;
-                int atomicNumber;
+
 
                 // tempResi must be converted to proper residue name if forcing to be RNA or DNA
                 if (ifRNA){  // A => ALA, G => GLY, C => CYS
@@ -190,6 +195,8 @@ void PDBModel::extractCoordinates() {
                     tempResi = *pString;
                 }
 
+                float vdWradius;
+                int atomicNumber;
                 tempvol = residueToVolume( atomType.back(), tempResi, &vdWradius, &atomicNumber);
 
                 volume += tempvol;
@@ -419,7 +426,7 @@ float PDBModel::residueToVolume(std::string atom_type, std::string residue, floa
             radii = 1.46;
             atomicNumber = 8;
         }
-    } else if ((((residue).compare("rG") == 0) && (residue).length() == 2) || (((residue).compare("G") == 0) && (residue).length() == 1)){
+    } else if (((residue.compare("rG") == 0) && (residue).length() == 2) || (((residue).compare("G") == 0) && (residue).length() == 1)){
         //tempVolume = 323.028;
         if (atom_type == "N1") {
             tempVolume = 13.499;
@@ -1620,7 +1627,7 @@ float PDBModel::residueToVolume(std::string atom_type, std::string residue, floa
             atomicNumber = 8;
         }
 
-    } else if ((residue).compare("CYS") == 0) {
+    } else if ((residue).compare("CYS") == 0 || residue.compare("CYX") == 0) {
         //tempVolume = 112.836;
         if (atom_type == "N") {
             tempVolume = 13.865;
@@ -1684,7 +1691,8 @@ float PDBModel::residueToVolume(std::string atom_type, std::string residue, floa
             atomicNumber = 8;
         }
 
-    } else if ((residue).compare("HIS") == 0) {
+    } else if (residue.compare("HIS") == 0 || residue.compare("HIP") == 0
+    || residue.compare("HIE") == 0 || residue.compare("HID") == 0) {
         //tempVolume = 157.464;
         if (atom_type == "N") {
             tempVolume = 13.532;
@@ -2172,46 +2180,45 @@ void PDBModel::setSMax(){
 }
 
 
-float PDBModel::calculateMW(){
+void PDBModel::calculateMW(){
 
-    float total=0.0f;
-    int total_c=0;
-    int total_n=0;
-    int total_o=0;
-    int total_p=0;
-    int total_s=0;
+    mw=0.0f;
+//    int total_c=0;
+//    int total_n=0;
+//    int total_o=0;
+//    int total_p=0;
+//    int total_s=0;
 
     for(auto at : atomNumbers){
 
-        total += getAtomicMass(at);
+        mw += getAtomicMass(at);
 
-        switch(at){
-            case 6:
-                total_c+=1;
-                break;
-            case 7:
-                total_n+=1;
-                break;
-            case 8:
-                total_o+=1;
-                break;
-            case 15:
-                total_p+=1;
-                break;
-            case 16:
-                total_s+=1;
-                break;
-        }
+//        switch(at){
+//            case 6:
+//                total_c+=1;
+//                break;
+//            case 7:
+//                total_n+=1;
+//                break;
+//            case 8:
+//                total_o+=1;
+//                break;
+//            case 15:
+//                total_p+=1;
+//                break;
+//            case 16:
+//                total_s+=1;
+//                break;
+//        }
     }
 
-    SASTOOLS_UTILS_H::logger("Total Carbon", formatNumber((unsigned int)total_c) );
-    SASTOOLS_UTILS_H::logger("Total Nitrogen", formatNumber((unsigned int)total_n) );
-    SASTOOLS_UTILS_H::logger("Total Oxygen", formatNumber((unsigned int)total_o) );
-    SASTOOLS_UTILS_H::logger("Total Phosphate", formatNumber((unsigned int)total_p) );
-    SASTOOLS_UTILS_H::logger("Total Sulfur", formatNumber((unsigned int)total_s) );
-    SASTOOLS_UTILS_H::logger("Total non-Hydrogen Mass", formatNumber((unsigned int)total) );
+//    SASTOOLS_UTILS_H::logger("Total Carbon", formatNumber((unsigned int)total_c) );
+//    SASTOOLS_UTILS_H::logger("Total Nitrogen", formatNumber((unsigned int)total_n) );
+//    SASTOOLS_UTILS_H::logger("Total Oxygen", formatNumber((unsigned int)total_o) );
+//    SASTOOLS_UTILS_H::logger("Total Phosphate", formatNumber((unsigned int)total_p) );
+//    SASTOOLS_UTILS_H::logger("Total Sulfur", formatNumber((unsigned int)total_s) );
+//    SASTOOLS_UTILS_H::logger("Total non-Hydrogen Mass", formatNumber((unsigned int)mw) );
 
-    return total;
 }
 
 

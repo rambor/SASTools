@@ -702,7 +702,7 @@ float assignOccupancy ( std::string * neighboringAtom, std::string * neighboring
             occupancy = 0.546;
 //            occupancy = 0.738918;
         }
-    } else if (*neighboringResi == "CYS") {
+    } else if (*neighboringResi == "CYS" || *neighboringResi == "CYX") {
         if (*neighboringAtom == "N") {
             occupancy = 0.400;
 //            occupancy = 0.632455;
@@ -794,7 +794,7 @@ float assignOccupancy ( std::string * neighboringAtom, std::string * neighboring
             occupancy = 0.521;
 //            occupancy = 0.721803;
         }
-    } else if (*neighboringResi == "HIS") {
+    } else if (*neighboringResi == "HIS" || *neighboringResi == "HID" || *neighboringResi == "HID" || *neighboringResi == "HIP") {
         if (*neighboringAtom == "N") {
             occupancy = 0.359;
 //            occupancy = 0.599166;
@@ -2162,7 +2162,7 @@ double residueToVolume(std::string atomType, std::string residue) {
             volume = 9.13;
         }
 
-    } else if ((residue).compare("CYS") == 0) {
+    } else if (residue.compare("CYS") == 0 || (residue.compare("CYX") == 0)) {
         //volume = 112.836;
         if (atomType == "N") {
             volume = 13.865;
@@ -2198,7 +2198,8 @@ double residueToVolume(std::string atomType, std::string residue) {
             volume = 9.13;
         }
 
-    } else if ((residue).compare("HIS") == 0) {
+    } else if ((residue).compare("HIS") == 0 || residue.compare("HID") == 0 || residue.compare("HIE") == 0
+    || residue.compare("HIP") == 0) {
         //volume = 157.464;
         if (atomType == "N") {
             volume = 13.532;
@@ -2330,6 +2331,8 @@ double residueToVolume(std::string atomType, std::string residue) {
         boost::algorithm::trim(tempAtom);
 
         boost::regex isCarbon("^[\\s1-9]+C['A-Z0-9]{0,3}");
+        boost::regex isSulfur("^[\\s1-9]+S['A-Z0-9]{0,3}");
+        boost::regex isNitrogen("^[\\s1-9]+N['A-Z0-9]{0,3}");
         boost::regex isCarbonNumber("C['A-Z0-9]{0,3}");
 
         //boost::regex ifCarbon("^[0-9]+?C[0-9]+?"); // match any character
@@ -2353,11 +2356,15 @@ double residueToVolume(std::string atomType, std::string residue) {
             volume = 23.720;
         } else if (tempAtom == "NZ") {
             volume = 21.413;
+        } else if (tempAtom == "NE" || boost::regex_match(tempAtom, isNitrogen)) {
+                volume = 15.019;
         } else if (tempAtom == "OXT" || tempAtom == "OT") { // taken from CRYSOL TABLE as O* (deprotonated oxygen)
             volume = 9.13;
         } else if (boost::regex_match(tempAtom, isCarbon)){ // non-terminal, methylene like carbon
             volume = 23.365;
         } else if (boost::regex_match(tempAtom, ifOxygen)){ // bridging oxygen
+            volume = 17.386; // borrowed from ribose ring oxygen
+        } else if (boost::regex_match(tempAtom, isSulfur)){ // bridging oxygen
             volume = 17.386; // borrowed from ribose ring oxygen
         } else {
             std::cout << "|" << residue <<  "| did not find volume |" << atomType << "|" << std::endl;

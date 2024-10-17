@@ -57,15 +57,14 @@ public:
     inline vector3& operator/=(float b) { mmvalue = simde_mm_div_ps(mmvalue, simde_mm_set1_ps(b)); return *this; }
 
     // cross product
-//    inline vector3 cross(const vector3& b) const
-//    {
-//        return simde_mm_sub_ps(
-//                simde_mm_mul_ps(simde_mm_shuffle_ps(mmvalue, mmvalue, SIMDE_MM_SHUFFLE(3, 0, 2, 1)),
-//                                simde_mm_shuffle_ps(b.mmvalue, b.mmvalue, SIMDE_MM_SHUFFLE(3, 1, 0, 2))),
-//                simde_mm_mul_ps(simde_mm_shuffle_ps(mmvalue, mmvalue, SIMDE_MM_SHUFFLE(3, 1, 0, 2)),
-//                                simde_mm_shuffle_ps(b.mmvalue, b.mmvalue, SIMDE_MM_SHUFFLE(3, 0, 2, 1)))
-//        );
-//    }
+    inline vector3 cross(const vector3& b) const {
+        return simde_mm_sub_ps(
+                simde_mm_mul_ps(simde_mm_shuffle_ps(mmvalue, mmvalue, SIMDE_MM_SHUFFLE(3, 0, 2, 1)),
+                                simde_mm_shuffle_ps(b.mmvalue, b.mmvalue, SIMDE_MM_SHUFFLE(3, 1, 0, 2))),
+                simde_mm_mul_ps(simde_mm_shuffle_ps(mmvalue, mmvalue, SIMDE_MM_SHUFFLE(3, 1, 0, 2)),
+                                simde_mm_shuffle_ps(b.mmvalue, b.mmvalue, SIMDE_MM_SHUFFLE(3, 0, 2, 1)))
+        );
+    }
 
     // dot product with another vector
     inline float dot(const vector3& b) const { return simde_mm_cvtss_f32(simde_mm_dp_ps(mmvalue, b.mmvalue, 0x71)); }

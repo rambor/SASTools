@@ -38,7 +38,7 @@ class PDBModel : public Model {
     bool found_edge_radius=false;
     float edge_radius=0.0;
     unsigned int totalResidues, waterCount, watersPerResidue, totalWatersInExcludedVolume, totalHydrogens;
-    float volume=0.0f, dmax, fractionalWaterOccupancy, smax; // smax is the radius of the sphere than encloses centered object
+    float volume=0.0f, dmax, fractionalWaterOccupancy, smax, mw=0.0f; // smax is the radius of the sphere than encloses centered object
     std::vector<float> occupancies, atomVolume, atomicRadii;
     std::vector<int> atomNumbers;
     vector3 centeringVector;
@@ -92,6 +92,7 @@ public:
         dmax = model.dmax;
         fractionalWaterOccupancy = model.fractionalWaterOccupancy;
         smax = model.smax;
+        mw = model.mw;
         
         occupancies = std::move(model.occupancies);
         atomVolume = std::move(model.atomVolume);
@@ -155,7 +156,6 @@ public:
 //            atomNumbers (model.atomNumbers),
 //            centeringVector(vector3(model.centeringVector))
     {
-
             *this = std::move(model);
     }
     
@@ -233,7 +233,8 @@ public:
 
     bool checkHydrogen(std::string val);
 
-    float calculateMW();
+    void calculateMW();
+    float getMW(){ return mw; }
 
     unsigned int getTotalHydrogens(){ return totalHydrogens;}
 
