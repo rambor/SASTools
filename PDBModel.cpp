@@ -2015,6 +2015,14 @@ float PDBModel::residueToVolume(std::string atom_type, std::string residue, floa
             tempVolume = 16.21; // median of first two
             radii = 1.46;
             atomicNumber = 8;
+        } else if (tempAtom == "SD" || tempAtom == "S1" || tempAtom == "S2" || tempAtom == "S3" || tempAtom == "S4" || ifSulfur(tempAtom)) {
+            tempVolume = 36.748;
+            radii = 1.88;
+            atomicNumber = 16;
+        } else if (tempAtom == "FE" || tempAtom == "FE1" || tempAtom == "FE2" || tempAtom == "FE3" || tempAtom == "FE4" || ifIron(tempAtom)) {
+            tempVolume = 36.748;
+            radii = 1.88;
+            atomicNumber = 16;
         } else if (ifBridgingOxygen(atom_type)){
             tempVolume = 17.386;
             radii = 1.46;

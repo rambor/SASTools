@@ -2334,9 +2334,10 @@ double residueToVolume(std::string atomType, std::string residue) {
         boost::regex isSulfur("^[\\s1-9]+S['A-Z0-9]{0,3}");
         boost::regex isNitrogen("^[\\s1-9]+N['A-Z0-9]{0,3}");
         boost::regex isCarbonNumber("C['A-Z0-9]{0,3}");
+        boost::regex ifIron("^[ ]?FE[0-9]?+");
 
         //boost::regex ifCarbon("^[0-9]+?C[0-9]+?"); // match any character
-        boost::regex ifOxygen("^[ 0-9]?O[0-9]+?"); // match any character
+        boost::regex ifOxygen("^[ 0-9]?O['0-9]+?"); // match any character
 
         if ((tempAtom == "N") || (tempAtom == "N1") || (tempAtom == "N2") || (tempAtom == "N3") || (tempAtom == "N4") || (tempAtom == "N5") || (tempAtom == "N6") || (tempAtom == "N7") || (tempAtom == "N8") || (tempAtom == "N9")  ) {
             volume = 13.429;
@@ -2365,10 +2366,14 @@ double residueToVolume(std::string atomType, std::string residue) {
         } else if (boost::regex_match(tempAtom, ifOxygen)){ // bridging oxygen
             volume = 17.386; // borrowed from ribose ring oxygen
         } else if (boost::regex_match(tempAtom, isSulfur)){ // bridging oxygen
-            volume = 17.386; // borrowed from ribose ring oxygen
+            volume = 30.207; // borrowed from ribose ring oxygen
+        } else if (tempAtom == "SD" || tempAtom == "S1" || tempAtom == "S2" || tempAtom == "S3" || tempAtom == "S4" || boost::regex_match(tempAtom, isSulfur)) {
+            volume = 36.748;
+        } else if (tempAtom == "FE" || tempAtom == "FE1" || tempAtom == "FE2" || tempAtom == "FE3" || tempAtom == "FE4" || boost::regex_match(tempAtom, ifIron)) {
+            volume = 36.748;
         } else {
             std::cout << "|" << residue <<  "| did not find volume |" << atomType << "|" << std::endl;
-            volume = 0.0;
+            volume = 15.8;
         }
 
         std::cout << "\tUNKNOWN RESIDUE => " << residue << " GENERIC VOLUME => " << atomType << " :: " << volume << std::endl;

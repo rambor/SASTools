@@ -284,8 +284,19 @@ public:
         return  (boost::regex_search(val, ifAtom));
     }
 
+
+    bool ifSulfur(std::string val){
+        boost::regex ifAtom("^[ ]?S[0-9]?+");
+        return  (boost::regex_search(val, ifAtom));
+    }
+
+    bool ifIron(std::string val){
+        boost::regex ifAtom("^[ ]?FE[0-9]?+");
+        return  (boost::regex_search(val, ifAtom));
+    }
+
     bool ifBridgingOxygen(std::string val){
-        boost::regex ifAtom("^[ 0-9]+?O[0-9]?");
+        boost::regex ifAtom("^[ 0-9]+?O['0-9]?");
         return  (boost::regex_search(val, ifAtom));
     }
 
