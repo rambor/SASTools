@@ -1,4 +1,4 @@
-#SASTools
+# SASTools
 SASTools is a c++ library for reading in PDB files and data output files from Scatter.  The library provides routines for manipulating coordinates, calculating atomic volumes and 
 
 ## Requirements/Dependencies
