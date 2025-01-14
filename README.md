@@ -14,6 +14,6 @@ For instance, on a Mac, go to the boost source directory and perform the followi
 
 This should build the boost files, static libraries and copy them to the UserDirectoryForBoostInstallation.  In my case, I put them in my home directory under /HomeDirectory/libs/boost
 
-Now, for building SASTools, you will need to specify the location of the boost library files as a preprocessor definition -DBOOSTROOT=/UserDirectoryForBoostInstallation and -DCMAKE_INSTALL_PREFIC=/HomeDirectory/usr/local
+Now, for building SASTools, you will need to specify the location of the boost library as a preprocessor definition -DBOOSTROOT=/UserDirectoryForBoostInstallation and -DCMAKE_INSTALL_PREFIX=/HomeDirectory/usr/local
 
 No modification of the CMakeLists.txt file should be required.  I specify the c++11 standard, but you may want to change this for the more modern standard.  There are a set of tests using the GoogleTest framework, the framework is distributed with this codebase.  
