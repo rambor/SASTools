@@ -301,6 +301,11 @@ public:
     }
 
     float getVolume(){ return volume;}
+
+    bool validateATOMTYPESFileFormat(std::string filename);
+
+    void updateAtomDescriptions(std::string filename);
+
 };
 
 

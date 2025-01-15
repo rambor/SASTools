@@ -145,7 +145,7 @@ void PDBModel::extractCoordinates() {
                 y.push_back(std::strtof(line.substr(38,8).c_str(), nullptr));
                 z.push_back(std::strtof(line.substr(46,8).c_str(), nullptr));
 
-                //Atom type taken from rows 13-16 needs to be converted to the actual atom, e.g., CB1 is C
+                // Atom type taken from rows 13-16 needs to be converted to the actual atom, e.g., CB1 is C
                 atomType.push_back(line.substr(12,4));// needs to be this way until atomic numbers are assigned
                 uniqAtomTypes.insert(alt); // container is a set, holds only unique entries
 
@@ -197,12 +197,14 @@ void PDBModel::extractCoordinates() {
 
                 float vdWradius;
                 int atomicNumber;
+                // atom types are assigned here, critical they are correctly identified by the residueToVolume method
                 tempvol = residueToVolume( atomType.back(), tempResi, &vdWradius, &atomicNumber);
 
-                volume += tempvol;
+                volume += tempvol; // these need to be updated if the atom type is identified in a separate file
                 atomVolume.push_back(tempvol);
                 atomicRadii.push_back(vdWradius);
                 atomNumbers.push_back(atomicNumber);
+
                 // should properly calculate
                 fileLength++;
             } else if (!discardWaters && line.length() > 20 && (line.substr(17,3) == "HOH")) {
@@ -2022,12 +2024,12 @@ float PDBModel::residueToVolume(std::string atom_type, std::string residue, floa
         } else if (tempAtom == "FE" || tempAtom == "FE1" || tempAtom == "FE2" || tempAtom == "FE3" || tempAtom == "FE4" || ifIron(tempAtom)) {
             tempVolume = 36.748;
             radii = 1.88;
-            atomicNumber = 16;
+            atomicNumber = 26;
         } else if (ifBridgingOxygen(atom_type)){
             tempVolume = 17.386;
             radii = 1.46;
             atomicNumber = 8;
-        } else {
+        } else { // generic
             tempVolume = 16.21;
             radii = 1.46;
             atomicNumber = 8;
@@ -2249,6 +2251,150 @@ void PDBModel::calculateTotalHydrogens(){
             totalHydrogens += pTag->second;
         }
     }
+}
+
+/*
+ * use this to reassign atom types after PDB file is read in, particularly useful for non amino acid residues
+ */
+bool PDBModel::validateATOMTYPESFileFormat(std::string filename){
+
+    std::ifstream data (filename, std::ifstream::in);
+    if (data.is_open()) {
+
+        boost::regex formatRES("RESNAME", boost::regex::icase);
+        boost::regex formatATOM("ATOM", boost::regex::icase);
+        boost::regex formatNUMBER("NUMBER");
+        boost::regex formatVOL("VOL[UME]?", boost::regex::icase);
+
+        std::string line;
+
+        while(!data.eof()) {
+            getline(data, line); //this function grabs a line and moves to next line in file
+
+            if (isspace(line[0])){
+                line.erase(line.begin(), std::find_if(line.begin(), line.end(), std::not1(std::ptr_fun<int, int>(std::isspace))));
+            }
+
+            std::vector<std::string> tempLine;
+            boost::split(tempLine, line, boost::is_any_of(","), boost::token_compress_on);
+
+            // RESNAME : SF1, ATOM : S1, NUMBER : 16, VOLUME : 26.54
+            if (!(boost::regex_search(line, formatRES) && boost::regex_search(line, formatATOM) && boost::regex_search(line, formatNUMBER) && boost::regex_search(line, formatVOL))){
+                std::cout << "RESNAME : XXX, ATOM : SD1, NUMBER : 16, VOLUME : 30.4 "<< std::endl;
+                throw std::invalid_argument("** IMPROPERLY FORMATTED FILE => " + line);
+                exit(0);
+            }
+
+            if (tempLine.size() != 4){
+                std::cout << "check the commas "<< std::endl;
+                throw std::invalid_argument("** FILE => IMPROPERLY FORMATTED FILE: " + line);
+                exit(0);
+            }
+
+            for (auto & ll : tempLine){
+
+                if (boost::regex_search(ll, formatVOL)){ // split and make sure the value is a number
+                    std::vector<std::string> eles;
+                    boost::split(eles, ll, boost::is_any_of(":"), boost::token_compress_on);
+                    if (std::stof(eles[1]) <= 0){ // check if volume is a float
+                        throw std::invalid_argument("** IMPROPER ATOM VOLUME : " + line);
+                    }
+                }
+
+                // check if Number is an integer greater than 1
+                if (boost::regex_search(ll, formatNUMBER)){ // split and make sure the value is a number
+                    std::vector<std::string> eles;
+                    boost::split(eles, ll, boost::is_any_of(":"), boost::token_compress_on);
+
+                    if (std::stoi(eles[1]) <= 1){ // check if volume is a float
+                        throw std::invalid_argument("** FILE => IMPROPER ATOMIC NUMBER : " + line);
+                    }
+                }
+
+            }
+        }
+    }
+
+    data.close();
+
+    return true;
+}
+
+void PDBModel::updateAtomDescriptions(std::string filename){
+
+    std::ifstream data (filename, std::ifstream::in);
+
+
+    if (data.is_open()) {
+
+        boost::regex formatRES("RESNAME", boost::regex::icase);
+        boost::regex formatATOM("ATOM", boost::regex::icase);
+        boost::regex formatNUMBER("NUM[BER]?");
+        boost::regex formatVOL("VOL[UME]?", boost::regex::icase);
+
+        std::string line, resname, atomname;
+        int atomicnumber;
+        float atomvol;
+
+        std::vector<std::string> atomlines;
+
+        while(!data.eof()) {
+            getline(data, line); //this function grabs a line and moves to next line in file
+
+            if (isspace(line[0])){
+                line.erase(line.begin(), std::find_if(line.begin(), line.end(), std::not1(std::ptr_fun<int, int>(std::isspace))));
+            }
+
+            std::vector<std::string> tempLine;
+            boost::split(tempLine, line, boost::is_any_of(","), boost::token_compress_on);
+
+            // RESNAME : SF1, ATOM : S1, NUMBER : 16, VOLUME : 26.54
+            if ((boost::regex_search(line, formatRES) && boost::regex_search(line, formatATOM) && boost::regex_search(line, formatNUMBER) && boost::regex_search(line, formatVOL))){
+
+                for(auto & ll : tempLine){
+                    std::vector<std::string> eles;
+                    boost::split(eles, ll, boost::is_any_of(":"), boost::token_compress_on);
+
+                    if (boost::regex_search(ll, formatRES)){
+                        resname = eles[1];
+                    }
+
+                    if (boost::regex_search(ll, formatATOM)){
+                        atomname = eles[1];
+                    }
+
+                    if (boost::regex_search(ll, formatNUMBER)){
+                        atomicnumber = std::stoi(eles[1]);
+                    }
+
+                    if (boost::regex_search(ll, formatVOL)){
+                        atomvol = std::stof(eles[1]);
+                    }
+                } // update atom
+
+                boost::to_upper(resname);
+                boost::to_upper(atomname);
+                boost::algorithm::trim(atomname);
+
+                std::string * rname;
+
+                for(unsigned int i=0; i<resi.size(); i++){
+                    std::string att = atomType[i];
+                    boost::algorithm::trim(att);
+
+                    if ( resi[i].compare(resname) == 0 && att == atomname){
+                         atomNumbers[i] = atomicnumber;
+                         atomVolume[i] =  atomvol;
+                         atomicRadii[i] = cbrtf(atomvol/4*3/M_PI);
+                        logger("UPDATING ATOM DESCRIPTION", att.append(" " + std::to_string(atomicnumber)));
+                    }
+                }
+            }
+        }
+    }
+
+    data.close();
+
 }
 
 
