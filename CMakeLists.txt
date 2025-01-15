@@ -33,12 +33,14 @@ set(Boost_USE_STATIC_RUNTIME ON)
 # from command line for cmake, pass in -DBOOSTROOT=/your/directoryToBoost
 MESSAGE("CMAKE INSTALL LIBDIR ${CMAKE_INSTALL_LIBDIR}")
 MESSAGE("PROJECT SOURCE DIR ${PROJECT_SOURCE_DIR}")
+
+# set using -DCMAKE_INSTALL_PREFIX=/Users/homedirectory
 MESSAGE("CMAKE INSTALL PREFIX ${CMAKE_INSTALL_PREFIX}") # default is /usr/local
 
 set(header_path "${PROJECT_SOURCE_DIR}/include")
 
 # Boost root variable set as environment variable in CLION Preferences
-find_package(Boost)
+find_package(Boost REQUIRED NO_MODULE)
 
 MESSAGE("** BOOST ROOT => ${BOOSTROOT}")
 
@@ -103,7 +105,6 @@ target_include_directories(SASTools
         )
 
 # Install, DESTINATION is relative to CMAKE_INSTALL_PREFIX (/usr/local no longer on mac)
-# installation on new macs seems relative to user directory
 #install(TARGETS SASTools EXPORT SASTools DESTINATION lib CONFIGURATIONS RELEASE)
 #install(TARGETS SASTools DESTINATION lib EXPORT SASTools CONFIGURATIONS RELEASE)
 #install(TARGETS SASTools DESTINATION /Users/xos81802/usr/local/lib CONFIGURATIONS DEBUG)
