@@ -156,8 +156,9 @@ void IofQData::makeWorkingSet(int value){
 
     // may not be import for fitting smoothed data - only for Durbin Watson
     int count = 0;
-    for (auto & pp : points_per_signal_to_noise){
-        pp *= (unsigned int)((float)value*((float)count*0.16666667f + 0.5f));
+    for (auto & pp : points_per_signal_to_noise){ // scales per bin, i.e., count
+        // 1/6*count + 0.5
+        pp *= (unsigned int)((float)value*( (float)count*0.16666667f + 0.5f));
         ++count;
     }
 
@@ -279,13 +280,15 @@ void IofQData::makeWorkingSet(){
     }
 }
 
-// for each Shannon point in the dataset, determine which q-indices are within half a shannon width
+// for each Shannon point in the dataset, determine which q-indices are within +/- half a shannon width
 void IofQData::partitionIndices(unsigned int ns, float deltaQ) {
 
     const float half_width = 0.5f*deltaQ; // look at points surrounding the Shannon point
     unsigned int  startIndex=0;
     const auto pQ = x_data.data();
     unsigned int ns_start = ((pQ[0] > deltaQ)) ? 2 : 1;
+
+    collated_indices.clear();
 
     for(unsigned int n=ns_start; n<=ns; n++){ // iterate over the shannon indices
 
@@ -547,6 +550,7 @@ void IofQData::truncateToQmax(float value){
         }
     }
 
+    // x_data and y_data are already pre-populated, so truncating to an index to shrink vector
     x_data.resize(stop_at);
     y_data.resize(stop_at);
     sigma_data.resize(stop_at);
@@ -555,7 +559,7 @@ void IofQData::truncateToQmax(float value){
         y_calc.resize(stop_at);
     }
 
-    total_data_points = stop_at;
+    total_data_points = x_data.size();
     qmax = x_data[total_data_points-1];
 
     logger("QMIN", formatNumber(qmin, 5));
