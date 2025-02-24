@@ -328,6 +328,7 @@ void IofQData::partitionIndices(unsigned int ns, float deltaQ) {
 }
 
 // Need to populate points_to_sample_per_shannon_bin which tells us how many q-values we need
+// run this method after truncating to a new q-max to make reassignments
 void IofQData::assignPointsPerBinForWorkingSet(){
 
     //auto deltaQ = (float)(M_PI/dmax); // determines location of first shannon point, i.e, N_s => 1
@@ -365,8 +366,6 @@ void IofQData::assignPointsPerBinForWorkingSet(){
             avg_signal_to_noise_per_shannon_bin[cc.first] = 0;
         }
     }
-
-
 
 //    unsigned int startIndex=0;
 //    unsigned int ns_start = ((pQ[0] > deltaQ)) ? 2 : 1;
