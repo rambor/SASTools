@@ -1437,7 +1437,7 @@ float asf ( int atomicNumber, float q) {
 
  @param[in] resi
  @param[in]	q
- @return     float atomic scattering form factor
+ @return     float volume
 
  **/
 
@@ -1518,6 +1518,8 @@ double residueToVolume(std::string atomType, std::string residue) {
             volume = 9.239;
         } else if (atomType == "C6") {
             volume = 9.265;
+        } else if (atomType == "O6") {
+            volume = 16.29;
         } else if (atomType == "N7") {
             volume = 15.888;
         } else if (atomType == "C8") {
@@ -2325,7 +2327,6 @@ double residueToVolume(std::string atomType, std::string residue) {
         // Need volumes for residues not specified : taken from CRYSOL
         // Incomplete, need to do properly
     } else {
-
 
         std::string tempAtom = std::string(atomType);
         boost::algorithm::trim(tempAtom);

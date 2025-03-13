@@ -41,6 +41,7 @@ class PDBModel : public Model {
     float volume=0.0f, dmax, fractionalWaterOccupancy, smax, mw=0.0f; // smax is the radius of the sphere than encloses centered object
     std::vector<float> occupancies, atomVolume, atomicRadii;
     std::vector<int> atomNumbers;
+    std::vector<int> atomASFNumbers; // use for atomic scattering form factors for hydrogens
     vector3 centeringVector;
 
 public:
@@ -98,6 +99,7 @@ public:
         atomVolume = std::move(model.atomVolume);
         atomicRadii = std::move(model.atomicRadii);
         atomNumbers = std::move(model.atomNumbers);
+        atomASFNumbers = std::move(model.atomASFNumbers);
 
         centeringVector = std::move(model.centeringVector);
 
@@ -164,7 +166,12 @@ public:
 
     std::string getFileExtension() override {return base_file.getFileExtension();}
 
-    float residueToVolume(std::string atom_type, std::string residue, float * vdwradius, int * atomic_number);
+    float residueToVolume(std::string atom_type,
+                          std::string residue,
+                          float * vdwradius,
+                          int * atomic_number,
+                          int * asf_number);
+
     void extractCoordinates() override;
 
     unsigned int getTotalCoordinates() override { return totalAtoms;}
@@ -227,6 +234,7 @@ public:
 
     int getAtomicNumberByIndex(int index){ return atomNumbers[index];}
     int * getAtomicNumberVec() { return atomNumbers.data();}
+    int * getAdjustedASFNumbers() { return atomASFNumbers.data(); }
     float * getAtomicVolumeVec() { return atomVolume.data();}
 
     void writeTranslatedCoordinatesToFile(std::string name, std::vector<vector3> coords);
