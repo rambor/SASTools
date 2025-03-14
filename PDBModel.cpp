@@ -184,9 +184,6 @@ void PDBModel::extractCoordinates() {
                 }
 
                 occupancies.push_back(1.0f); // use this as an occupancy
-//                vdWRadii.push_back(vdWradius);
-//                atomicRadii.push_back((float)std::cbrt(atomVolume[fileLength]*0.75/M_PI));
-
 
                 // tempResi must be converted to proper residue name if forcing to be RNA or DNA
                 if (ifRNA){  // A => ALA, G => GLY, C => CYS
@@ -195,15 +192,17 @@ void PDBModel::extractCoordinates() {
                     tempResi = *pString;
                 }
 
-                float vdWradius;
                 int atomicNumber;
                 int asfNumber;
+
+                atomicRadii.push_back(1);
+                atomicGaussianRadii.push_back(1);
+
                 // atom types are assigned here, critical they are correctly identified by the residueToVolume method
-                tempvol = residueToVolume( atomType.back(), tempResi, &vdWradius, &atomicNumber, &asfNumber);
+                tempvol = residueToVolume( atomType.back(), tempResi, &atomicRadii.back(), &atomicGaussianRadii.back(), &atomicNumber, &asfNumber);
 
                 volume += tempvol; // these need to be updated if the atom type is identified in a separate file
                 atomVolume.push_back(tempvol);
-                atomicRadii.push_back(vdWradius);
                 atomNumbers.push_back(atomicNumber);
                 atomASFNumbers.push_back(asfNumber);
 
@@ -314,12 +313,17 @@ void PDBModel::convertAtomTypes(int index_of_atom_type){
 float PDBModel::residueToVolume(std::string atom_type,
                                 std::string residue,
                                 float * vdwradius,
+                                float * gradii,
                                 int * atomic_number,
                                 int * asf_number) {
 
     float tempVolume = 0.0f;
     float radii = 0.0f;
+    float g_radii = 0;
     int atomicNumber = 1;
+
+    float threeOver4PI = 3.0/(4.0*M_PI);
+    float invSqrtPI3 = 1.0f/std::sqrtf(M_PI*M_PI*M_PI);
 
     boost::algorithm::trim(atom_type);
     boost::algorithm::trim(residue);
@@ -328,132 +332,158 @@ float PDBModel::residueToVolume(std::string atom_type,
         //tempVolumet = 315.449;
         if (atom_type == "N1") {
             tempVolume = 13.944;
-            radii = 1.493;
+            radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding?
             atomicNumber = 7;
             *asf_number = 7;
         } else if (atom_type == "C2") {
             tempVolume = 18.006;
-            radii = 1.625;
+            radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding?
             atomicNumber = 6;
             *asf_number = 103;
         } else if (atom_type == "N3") {
             tempVolume = 15.211;
-            radii = 1.537;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.537;
             atomicNumber = 7;
             *asf_number = 7;
         } else if (atom_type == "C4") {
             tempVolume = 9.076;
-            radii = 1.294;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.294;
             atomicNumber = 6;
             *asf_number = 6;
         } else if (atom_type == "C5") {
             tempVolume = 9.252;
-            radii = 1.302;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.302;
             atomicNumber = 6;
             *asf_number = 6;
         } else if (atom_type == "C6") {
             tempVolume = 9.166;
-            radii = 1.298;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.298;
             atomicNumber = 6;
             *asf_number = 6;
         } else if (atom_type == "N6") {
             tempVolume = 22.447;
-            radii = 1.750;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.750;
             atomicNumber = 7;
             *asf_number = 114;
         } else if (atom_type == "N7") {
             tempVolume = 15.632;
-            radii = 1.551;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.551;
             atomicNumber = 7;
             *asf_number = 7;
         } else if (atom_type == "C8") {
             tempVolume = 17.807;
-            radii = 1.6199;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.6199;
             atomicNumber = 6;
             *asf_number = 104;
         } else if (atom_type == "N9") {
             tempVolume = 8.771;
-            radii = 1.279;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.279;
             atomicNumber = 7;
             *asf_number = 7;
         } else if (atom_type == "C1\'") {
             tempVolume = 13.359;
-            radii = 1.472;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.472;
             atomicNumber = 6;
             *asf_number = 100;
         } else if (atom_type == "C2\'") {
             tempVolume = 12.687;
-            radii = 1.447;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.447;
             atomicNumber = 6;
             *asf_number = 100;
         } else if (atom_type == "C3\'") {
             tempVolume = 12.555;
-            radii = 1.442;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.442;
             atomicNumber = 6;
             *asf_number = 100;
         } else if (atom_type == "C4\'") {
             tempVolume = 13.316;
-            radii = 1.47;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.47;
             atomicNumber = 6;
             *asf_number = 100;
         } else if (atom_type == "O2\'") {
             tempVolume = 17.386;
-            radii = 1.607;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.607;
             atomicNumber = 8;
             *asf_number = 105;
         } else if (atom_type == "O3\'") {
             tempVolume = 13.877;
-            radii = 1.491;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.491;
             atomicNumber = 8;
             *asf_number = 105;
         } else if (atom_type == "O4\'") {
             tempVolume = 12.750;
-            radii = 1.449;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.449;
             atomicNumber = 8;
             *asf_number = 8;
         } else if (atom_type == "C5\'") {
             tempVolume = 21.885;
-            radii = 1.735;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.735;
             atomicNumber = 6;
             *asf_number = 101;
         } else if (atom_type == "O5\'") {
             tempVolume = 14.010;
-            radii = 1.495;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.495;
             atomicNumber = 8;
             *asf_number = 8;
         } else if (atom_type == "P") {
             tempVolume = 11.853;
-            radii = 2.04;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 2.04;
             atomicNumber = 15;
             *asf_number = 15;
         } else if (atom_type == "O1P") {
             tempVolume = 16.235;
-            radii = 1.46;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.46;
             atomicNumber = 8;
             *asf_number = 8;
         } else if (atom_type == "O2P") {
             tempVolume = 16.224;
-            radii = 1.46;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.46;
             atomicNumber = 8;
             *asf_number = 8;
         } else if (atom_type == "OP1") {
             tempVolume = 16.235;
-            radii = 1.46;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.46;
             atomicNumber = 8;
             *asf_number = 8;
         } else if (atom_type == "OP2") {
             tempVolume = 16.224;
-            radii = 1.46;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.46;
             atomicNumber = 8;
             *asf_number = 8;
         } else if (atom_type == "O3P") {
             tempVolume = 16.21; // median of first two
-            radii = 1.46;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.46;
             atomicNumber = 8;
             *asf_number = 8;
         } else if (atom_type == "OP3") {
             tempVolume = 16.21;
-            radii = 1.46;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.46;
             atomicNumber = 8;
             *asf_number = 8;
         }
@@ -461,137 +491,164 @@ float PDBModel::residueToVolume(std::string atom_type,
         //tempVolume = 323.028;
         if (atom_type == "N1") {
             tempVolume = 13.499;
-            radii = 1.4752;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.4752;
             atomicNumber = 7;
             *asf_number = 113;
         } else if (atom_type == "C2") {
             tempVolume = 9.033;
-            radii = 1.292;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.292;
             atomicNumber = 6;
             *asf_number = 6;
         } else if (atom_type == "N2") {
             tempVolume = 21.736;
-            radii = 1.731;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.731;
             atomicNumber = 7;
             *asf_number = 114;
         } else if (atom_type == "N3") {
             tempVolume = 14.961;
-            radii = 1.529;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.529;
             atomicNumber = 7;
             *asf_number = 7;
         } else if (atom_type == "C4") {
             tempVolume = 9.030;
-            radii = 1.292;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.292;
             atomicNumber = 6;
             *asf_number = 6;
         } else if (atom_type == "C5") {
             tempVolume = 9.239;
-            radii = 1.302;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.302;
             atomicNumber = 6;
             *asf_number = 6;
         } else if (atom_type == "C6") {
             tempVolume = 9.265;
-            radii = 1.303;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.303;
             atomicNumber = 6;
             *asf_number = 6;
         } else if (atom_type == "O6") {
             tempVolume = 16.29;
-            radii = 1.45;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.45;
             atomicNumber = 8;
             *asf_number = 8;
         } else if (atom_type == "N7") {
             tempVolume = 15.888;
-            radii = 1.5595;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.5595;
             atomicNumber = 7;
             *asf_number = 7;
         } else if (atom_type == "C8") {
             tempVolume = 18.213;
-            radii = 1.632;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.632;
             atomicNumber = 6;
             *asf_number = 104;
         } else if (atom_type == "N9") {
             tempVolume = 8.765;
-            radii = 1.279;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.279;
             atomicNumber = 7;
             *asf_number = 7;
         } else if (atom_type == "C1\'") {
             tempVolume = 13.477;
-            radii = 1.476;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.476;
             atomicNumber = 6;
             *asf_number = 100;
         } else if (atom_type == "C2\'") {
             tempVolume = 12.684;
-            radii = 1.447;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.447;
             atomicNumber = 6;
             *asf_number = 100;
         } else if (atom_type == "C3\'") {
             tempVolume = 12.704;
-            radii = 1.4475;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.4475;
             atomicNumber = 6;
             *asf_number = 100;
         } else if (atom_type == "C4\'") {
             tempVolume = 13.275;
-            radii = 1.4688;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.4688;
             atomicNumber = 6;
             *asf_number = 100;
         } else if (atom_type == "O2\'") {
             tempVolume = 17.592;
-            radii = 1.6134;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.6134;
             atomicNumber = 8;
             *asf_number = 105;
         } else if (atom_type == "O3\'") {
             tempVolume = 14.087;
-            radii = 1.498;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.498;
             atomicNumber = 8;
             *asf_number = 105;
         } else if (atom_type == "O4\'") {
             tempVolume = 12.786;
-            radii = 1.45;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.45;
             atomicNumber = 8;
             *asf_number = 8;
         } else if (atom_type == "C5\'") {
             tempVolume = 21.813;
-            radii = 1.7333;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.7333;
             atomicNumber = 6;
             *asf_number = 101;
         } else if (atom_type == "O5\'") {
             tempVolume = 14.004;
-            radii = 1.495;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.495;
             atomicNumber = 8;
             *asf_number = 8;
         } else if (atom_type == "P") {
             tempVolume = 11.853;
-            radii = 2.04;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 2.04;
             atomicNumber = 15;
             *asf_number = 15;
         } else if (atom_type == "O1P") {
             tempVolume = 16.235;
-            radii = 1.46;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.46;
             atomicNumber = 8;
             *asf_number = 8;
         } else if (atom_type == "O2P") {
             tempVolume = 16.224;
-            radii = 1.46;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.46;
             atomicNumber = 8;
             *asf_number = 8;
         } else if (atom_type == "OP1") {
             tempVolume = 16.235;
-            radii = 1.46;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.46;
             atomicNumber = 8;
             *asf_number = 8;
         } else if (atom_type == "OP2") {
             tempVolume = 16.224;
-            radii = 1.46;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.46;
             atomicNumber = 8;
             *asf_number = 8;
         } else if (atom_type == "O3P") {
             tempVolume = 16.21; // median of first two
-            radii = 1.46;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.46;
             atomicNumber = 8;
             *asf_number = 8;
         } else if (atom_type == "OP3") {
             tempVolume = 16.21;
-            radii = 1.46;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.46;
             atomicNumber = 8;
             *asf_number = 8;
         }
@@ -599,105 +656,146 @@ float PDBModel::residueToVolume(std::string atom_type,
         //tempVolume = 291.285;
         if (atom_type == "N1") {
             tempVolume = 8.811;
+            radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding?
             atomicNumber = 7;
             *asf_number = 7;
         } else if (atom_type == "C2") {
             tempVolume = 9.311;
+            radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding?
             atomicNumber = 6;
             *asf_number = 6;
         } else if (atom_type == "O2") {
             tempVolume = 15.744;
+            radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding?
             atomicNumber = 8;
             *asf_number = 8;
         } else if (atom_type == "N3") {
             tempVolume = 13.082;
+            radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding?
             atomicNumber = 7;
             *asf_number = 7;
         } else if (atom_type == "N4") {
-            tempVolume = 13.082;
+            tempVolume = 22.475;
+            radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding?
             atomicNumber = 7;
             *asf_number = 114;
         } else if (atom_type == "C4") {
             tempVolume = 9.406;
+            radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding?
             atomicNumber = 6;
             *asf_number = 6;
         } else if (atom_type == "C5") {
             tempVolume = 19.446;
+            radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding?
             atomicNumber = 6;
             *asf_number = 113;
         } else if (atom_type == "C6") {
             tempVolume = 16.920;
+            radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding?
             atomicNumber = 6;
             *asf_number = 113;
         } else if (atom_type == "C1\'") {
             tempVolume = 13.240;
+            radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding?
             atomicNumber = 6;
             *asf_number = 100;
         } else if (atom_type == "C2\'") {
             tempVolume = 12.637;
+            radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding?
             atomicNumber = 6;
             *asf_number = 100;
         } else if (atom_type == "C3\'") {
             tempVolume = 12.578;
+            radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding?
             atomicNumber = 6;
             *asf_number = 100;
         } else if (atom_type == "C4\'") {
             tempVolume = 13.308;
+            radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding?
             atomicNumber = 6;
             *asf_number = 100;
         } else if (atom_type == "O2\'") {
             tempVolume = 17.218;
+            radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding?
             atomicNumber = 8;
             *asf_number = 105;
         } else if (atom_type == "O3\'") {
             tempVolume = 14.092;
+            radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding?
             atomicNumber = 8;
             *asf_number = 105;
         } else if (atom_type == "O4\'") {
             tempVolume = 12.671;
+            radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding?
             atomicNumber = 8;
             *asf_number = 8;
         } else if (atom_type == "C5\'") {
             tempVolume = 21.773;
+            radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding?
             atomicNumber = 6;
             *asf_number = 101;
         } else if (atom_type == "O5\'") {
             tempVolume = 13.870;
+            radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding?
             atomicNumber = 8;
             *asf_number = 8;
         } else if (atom_type == "P") {
             tempVolume = 11.853;
-            radii = 2.04;
+            radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 2.04;
             atomicNumber = 15;
             *asf_number = 15;
         } else if (atom_type == "O1P") {
             tempVolume = 16.235;
-            radii = 1.46;
+            radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.46;
             atomicNumber = 8;
             *asf_number = 8;
         } else if (atom_type == "O2P") {
             tempVolume = 16.224;
-            radii = 1.46;
+            radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.46;
             atomicNumber = 8;
             *asf_number = 8;
         } else if (atom_type == "OP1") {
             tempVolume = 16.235;
-            radii = 1.46;
+            radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.46;
             atomicNumber = 8;
             *asf_number = 8;
         } else if (atom_type == "OP2") {
             tempVolume = 16.224;
-            radii = 1.46;
+            radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.46;
             atomicNumber = 8;
             *asf_number = 8;
         } else if (atom_type == "O3P") {
             tempVolume = 16.21; // median of first two
-            radii = 1.46;
+            radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.46;
             atomicNumber = 8;
             *asf_number = 8;
         } else if (atom_type == "OP3") {
             tempVolume = 16.21;
-            radii = 1.46;
+            radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.46;
             atomicNumber = 8;
             *asf_number = 8;
         }
@@ -705,105 +803,128 @@ float PDBModel::residueToVolume(std::string atom_type,
         //tempVolume = 286.255;
         if (atom_type == "N1") {
             tempVolume = 8.801;
+            radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding?
             atomicNumber = 7;
             *asf_number = 7;
         } else if (atom_type == "C2") {
             tempVolume = 9.202;
+            radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding?
             atomicNumber = 6;
             *asf_number = 6;
         } else if (atom_type == "O2") {
             tempVolume = 16.605;
+            radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding?
             atomicNumber = 8;
             *asf_number = 8;
         } else if (atom_type == "N3") {
             tempVolume = 13.915;
+            radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding?
             atomicNumber = 7;
             *asf_number = 7;
         } else if (atom_type == "C4") {
             tempVolume = 9.538;
+            radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding?
             atomicNumber = 6;
             *asf_number = 6;
         } else if (atom_type == "O4") {
             tempVolume = 16.825;
+            radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding?
             atomicNumber = 8;
             *asf_number = 8;
         } else if (atom_type == "C5") {
             tempVolume = 19.135;
+            radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding?
             atomicNumber = 6;
             *asf_number = 104;
         } else if (atom_type == "C6") {
             tempVolume = 16.983;
+            radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding?
             atomicNumber = 6;
             *asf_number = 104;
         } else if (atom_type == "C1\'") {
             tempVolume = 13.216;
+            radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding?
             atomicNumber = 6;
             *asf_number = 100;
         } else if (atom_type == "C2\'") {
             tempVolume = 12.701;
+            radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding?
             atomicNumber = 6;
             *asf_number = 100;
         } else if (atom_type == "C3\'") {
             tempVolume = 12.633;
+            radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding?
             atomicNumber = 6;
             *asf_number = 100;
         } else if (atom_type == "C4\'") {
             tempVolume = 13.290;
+            radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding?
             atomicNumber = 6;
             *asf_number = 100;
         } else if (atom_type == "O2\'") {
             tempVolume = 17.297;
+            radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding?
             atomicNumber = 8;
             *asf_number = 105;
         } else if (atom_type == "O3\'") {
             tempVolume = 14.001;
+            radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding?
             atomicNumber = 8;
             *asf_number = 105;
         } else if (atom_type == "O4\'") {
             tempVolume = 12.686;
+            radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding?
             atomicNumber = 8;
             *asf_number = 8;
         } else if (atom_type == "C5\'") {
             tempVolume = 21.398;
+            radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding?
             atomicNumber = 6;
             *asf_number = 101;
         } else if (atom_type == "O5\'") {
             tempVolume = 13.913;
+            radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding?
             atomicNumber = 8;
             *asf_number = 8;
         } else if (atom_type == "P") {
-            tempVolume = 11.853;
-            radii = 2.04;
+            tempVolume = 11.848;
+            radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 2.04;
             atomicNumber = 15;
             *asf_number = 15;
-        } else if (atom_type == "O1P") {
-            tempVolume = 16.235;
-            radii = 1.46;
+        } else if (atom_type == "O1P" || atom_type == "OP1") {
+            tempVolume = 16.126;
+            radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.46;
             atomicNumber = 8;
             *asf_number = 8;
-        } else if (atom_type == "O2P") {
-            tempVolume = 16.224;
-            radii = 1.46;
+        } else if (atom_type == "O2P" || atom_type == "OP2") {
+            tempVolume = 16.140;
+            radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.46;
             atomicNumber = 8;
             *asf_number = 8;
-        } else if (atom_type == "OP1") {
-            tempVolume = 16.235;
-            radii = 1.46;
-            atomicNumber = 8;
-            *asf_number = 8;
-        } else if (atom_type == "OP2") {
-            tempVolume = 16.224;
-            radii = 1.46;
-            atomicNumber = 8;
-            *asf_number = 8;
-        } else if (atom_type == "O3P") {
+        } else if (atom_type == "O3P" || atom_type == "OP3") {
             tempVolume = 16.21; // median of first two
-            radii = 1.46;
-            atomicNumber = 8;
-            *asf_number = 8;
-        } else if (atom_type == "OP3") {
-            tempVolume = 16.21;
-            radii = 1.46;
+            radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.46;
             atomicNumber = 8;
             *asf_number = 8;
         }
@@ -812,109 +933,152 @@ float PDBModel::residueToVolume(std::string atom_type,
         // tempVolumes are based on the RNA
         if (atom_type == "N1") {
             tempVolume = 13.944;
+            radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.46;
             atomicNumber = 7;
             *asf_number = 7;
         } else if (atom_type == "C2") {
             tempVolume = 18.006;
+            radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.46;
             atomicNumber = 6;
             *asf_number = 113;
         } else if (atom_type == "N3") {
             tempVolume = 15.211;
+            radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.46;
             atomicNumber = 7;
             *asf_number = 7;
         } else if (atom_type == "C4") {
             tempVolume = 9.076;
+            radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.46;
             atomicNumber = 6;
             *asf_number = 6;
         } else if (atom_type == "C5") {
             tempVolume = 9.252;
+            radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.46;
             atomicNumber = 6;
             *asf_number = 6;
         } else if (atom_type == "C6") {
             tempVolume = 9.166;
+            radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.46;
             atomicNumber = 6;
             *asf_number = 6;
         } else if (atom_type == "N6") {
             tempVolume = 22.447;
+            radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.46;
             atomicNumber = 7;
             *asf_number = 114;
         } else if (atom_type == "N7") {
             tempVolume = 15.632;
+            radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.46;
             atomicNumber = 7;
             *asf_number = 7;
         } else if (atom_type == "C8") {
             tempVolume = 17.807;
+            radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.46;
             atomicNumber = 6;
             *asf_number = 113;
         } else if (atom_type == "N9") {
             tempVolume = 8.771;
+            radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.46;
             atomicNumber = 7;
             *asf_number = 7;
         } else if (atom_type == "C1\'") {
             tempVolume = 13.359;
+            radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.46;
             atomicNumber = 6;
             *asf_number = 100;
         } else if (atom_type == "C2\'") {
             tempVolume = 12.687;
+            radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.46;
             atomicNumber = 6;
             *asf_number = 100;
         } else if (atom_type == "C3\'") {
             tempVolume = 12.555;
+            radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.46;
             atomicNumber = 6;
             *asf_number = 100;
         } else if (atom_type == "C4\'") {
             tempVolume = 13.316;
+            radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.46;
             atomicNumber = 6;
             *asf_number = 100;
         } else if (atom_type == "O3\'") {
             tempVolume = 13.877;
+            radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.46;
             atomicNumber = 8;
             *asf_number = 105;
         } else if (atom_type == "O4\'") {
             tempVolume = 12.750;
+            radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.46;
             atomicNumber = 8;
             *asf_number = 8;
         } else if (atom_type == "C5\'") {
             tempVolume = 21.885;
+            radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.46;
             atomicNumber = 6;
             *asf_number = 101;
         } else if (atom_type == "O5\'") {
             tempVolume = 14.010;
+            radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.46;
             atomicNumber = 8;
             *asf_number = 8;
         } else if (atom_type == "P") {
             tempVolume = 11.853;
-            radii = 2.04;
+            radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 2.04;
             atomicNumber = 15;
             *asf_number = 15;
         } else if (atom_type == "O1P") {
             tempVolume = 16.235;
-            radii = 1.46;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.46;
             atomicNumber = 8;
             *asf_number = 8;
         } else if (atom_type == "O2P") {
             tempVolume = 16.224;
-            radii = 1.46;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.46;
             atomicNumber = 8;
             *asf_number = 8;
         } else if (atom_type == "OP1") {
             tempVolume = 16.235;
-            radii = 1.46;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.46;
             atomicNumber = 8;
             *asf_number = 8;
         } else if (atom_type == "OP2") {
             tempVolume = 16.224;
-            radii = 1.46;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.46;
             atomicNumber = 8;
             *asf_number = 8;
         } else if (atom_type == "O3P") {
             tempVolume = 16.21; // median of first two
-            radii = 1.46;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.46;
             atomicNumber = 8;
             *asf_number = 8;
         } else if (atom_type == "OP3") {
             tempVolume = 16.21;
-            radii = 1.46;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.46;
             atomicNumber = 8;
             *asf_number = 8;
         }
@@ -922,316 +1086,439 @@ float PDBModel::residueToVolume(std::string atom_type,
         // tempVolume = 305.436;
         if (atom_type == "N1") {
             tempVolume = 13.499;
+            radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.46;
             atomicNumber = 7;
             *asf_number = 113;
         } else if (atom_type == "C2") {
             tempVolume = 9.033;
+            radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.46;
             atomicNumber = 6;
             *asf_number = 6;
         } else if (atom_type == "N2") {
             tempVolume = 21.736;
+            radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.46;
             atomicNumber = 7;
             *asf_number = 114;
         } else if (atom_type == "N3") {
             tempVolume = 14.961;
+            radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.46;
             atomicNumber = 7;
             *asf_number = 7;
         } else if (atom_type == "C4") {
             tempVolume = 9.030;
+            radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.46;
             atomicNumber = 6;
             *asf_number = 6;
         } else if (atom_type == "C5") {
             tempVolume = 9.239;
+            radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.46;
             atomicNumber = 6;
             *asf_number = 6;
         } else if (atom_type == "C6") {
             tempVolume = 9.265;
+            radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.46;
             atomicNumber = 6;
             *asf_number = 6;
         } else if (atom_type == "O6") {
             tempVolume = 16.825;
+            radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.46;
             atomicNumber = 8;
             *asf_number = 8;
         } else if (atom_type == "N7") {
             tempVolume = 15.888;
+            radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.46;
             atomicNumber = 7;
             *asf_number = 7;
         } else if (atom_type == "C8") {
             tempVolume = 18.213;
+            radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.46;
             atomicNumber = 6;
             *asf_number = 113;
         } else if (atom_type == "N9") {
             tempVolume = 8.765;
+            radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.46;
             atomicNumber = 7;
             *asf_number = 7;
         } else if (atom_type == "C1\'") {
             tempVolume = 13.477;
+            radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.46;
             atomicNumber = 6;
             *asf_number = 100;
         } else if (atom_type == "C2\'") {
             tempVolume = 12.684;
+            radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.46;
             atomicNumber = 6;
             *asf_number = 100;
         } else if (atom_type == "C3\'") {
             tempVolume = 12.704;
+            radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.46;
             atomicNumber = 6;
             *asf_number = 100;
         } else if (atom_type == "C4\'") {
             tempVolume = 13.275;
+            radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.46;
             atomicNumber = 6;
             *asf_number = 100;
         } else if (atom_type == "O3\'") {
             tempVolume = 14.087;
+            radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.46;
             atomicNumber = 8;
             *asf_number = 105;
         } else if (atom_type == "O4\'") {
             tempVolume = 12.786;
+            radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.46;
             atomicNumber = 8;
             *asf_number = 8;
         } else if (atom_type == "C5\'") {
             tempVolume = 21.813;
+            radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.46;
             atomicNumber = 6;
             *asf_number = 101;
         } else if (atom_type == "O5\'") {
             tempVolume = 14.004;
+            radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.46;
             atomicNumber = 8;
             *asf_number = 8;
         } else if (atom_type == "P") {
             tempVolume = 11.853;
-            radii = 2.04;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 2.04;
             atomicNumber = 15;
             *asf_number = 15;
         } else if (atom_type == "O1P") {
             tempVolume = 16.235;
-            radii = 1.46;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.46;
             atomicNumber = 8;
             *asf_number = 8;
         } else if (atom_type == "O2P") {
             tempVolume = 16.224;
-            radii = 1.46;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.46;
             atomicNumber = 8;
             *asf_number = 8;
         } else if (atom_type == "OP1") {
             tempVolume = 16.235;
-            radii = 1.46;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.46;
             atomicNumber = 8;
             *asf_number = 8;
         } else if (atom_type == "OP2") {
             tempVolume = 16.224;
-            radii = 1.46;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.46;
             atomicNumber = 8;
             *asf_number = 8;
         } else if (atom_type == "O3P") {
             tempVolume = 16.21; // median of first two
-            radii = 1.46;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.46;
             atomicNumber = 8;
             *asf_number = 8;
         } else if (atom_type == "OP3") {
             tempVolume = 16.21;
-            radii = 1.46;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.46;
             atomicNumber = 8;
             *asf_number = 8;
         }
     } else if (((residue).compare("dC") == 0 || (residue).compare("DC")) && (residue).length() == 2){
-        tempVolume = 274.067;
+
         if (atom_type == "N1") {
             tempVolume = 8.811;
+            radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.46;
             atomicNumber = 7;
             *asf_number = 7;
         } else if (atom_type == "C2") {
             tempVolume = 9.311;
+            radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.46;
             atomicNumber = 6;
             *asf_number = 6;
         } else if (atom_type == "O2") {
             tempVolume = 15.744;
+            radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.46;
             atomicNumber = 8;
             *asf_number = 8;
         } else if (atom_type == "N3") {
             tempVolume = 13.082;
+            radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.46;
             atomicNumber = 7;
             *asf_number = 7;
         } else if (atom_type == "C4") {
             tempVolume = 9.406;
+            radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.46;
             atomicNumber = 6;
             *asf_number = 6;
         } else if (atom_type == "C5") {
             tempVolume = 19.446;
+            radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.46;
             atomicNumber = 6;
             *asf_number = 104;
         } else if (atom_type == "C6") {
             tempVolume = 16.920;
+            radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.46;
             atomicNumber = 6;
             *asf_number = 104;
         } else if (atom_type == "C1\'") {
             tempVolume = 13.240;
+            radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.46;
             atomicNumber = 6;
             *asf_number = 100;
         } else if (atom_type == "C2\'") {
             tempVolume = 12.637;
+            radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.46;
             atomicNumber = 6;
             *asf_number = 100;
         } else if (atom_type == "C3\'") {
             tempVolume = 12.578;
+            radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.46;
             atomicNumber = 6;
             *asf_number = 100;
         } else if (atom_type == "C4\'") {
             tempVolume = 13.308;
+            radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.46;
             atomicNumber = 6;
             *asf_number = 100;
         } else if (atom_type == "O3\'") {
             tempVolume = 14.092;
+            radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.46;
             atomicNumber = 8;
             *asf_number = 105;
         } else if (atom_type == "O4\'") {
             tempVolume = 12.671;
+            radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.46;
             atomicNumber = 8;
             *asf_number = 8;
         } else if (atom_type == "C5\'") {
             tempVolume = 21.773;
+            radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.46;
             atomicNumber = 6;
             *asf_number = 101;
         } else if (atom_type == "O5\'") {
             tempVolume = 13.870;
+            radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.46;
             atomicNumber = 8;
             *asf_number = 8;
         } else if (atom_type == "P") {
             tempVolume = 11.853;
-            radii = 2.04;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 2.04;
             atomicNumber = 15;
             *asf_number = 15;
         } else if (atom_type == "O1P") {
             tempVolume = 16.235;
-            radii = 1.46;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.46;
             atomicNumber = 8;
             *asf_number = 8;
         } else if (atom_type == "O2P") {
             tempVolume = 16.224;
-            radii = 1.46;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.46;
             atomicNumber = 8;
             *asf_number = 8;
         } else if (atom_type == "OP1") {
             tempVolume = 16.235;
-            radii = 1.46;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.46;
             atomicNumber = 8;
             *asf_number = 8;
         } else if (atom_type == "OP2") {
             tempVolume = 16.224;
-            radii = 1.46;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.46;
             atomicNumber = 8;
             *asf_number = 8;
         } else if (atom_type == "O3P") {
             tempVolume = 16.21; // median of first two
-            radii = 1.46;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.46;
             atomicNumber = 8;
             *asf_number = 8;
         } else if (atom_type == "OP3") {
             tempVolume = 16.21;
-            radii = 1.46;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.46;
             atomicNumber = 8;
             *asf_number = 8;
         }
     } else if (((residue).compare("dT") == 0 || (residue == "DT")) && (residue).length() == 2){
         if (atom_type == "N1") {
             tempVolume = 8.801;
+            radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.46;
             atomicNumber = 7;
             *asf_number = 7;
         } else if (atom_type == "C2") {
             tempVolume = 9.202;
+            radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.46;
             atomicNumber = 6;
             *asf_number = 6;
         } else if (atom_type == "O2") {
             tempVolume = 16.605;
+            radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.46;
             atomicNumber = 8;
             *asf_number = 8;
         } else if (atom_type == "N3") {
             tempVolume = 13.915;
+            radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.46;
             atomicNumber = 7;
             *asf_number = 7;
         } else if (atom_type == "C4") {
             tempVolume = 9.538;
+            radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.46;
             atomicNumber = 6;
             *asf_number = 6;
         } else if (atom_type == "O4") {
             tempVolume = 16.825;
+            radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.46;
             atomicNumber = 8;
             *asf_number = 8;
         } else if (atom_type == "C5") {
             tempVolume = 19.135;
+            radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.46;
             atomicNumber = 6;
             *asf_number = 104;
         } else if (atom_type == "C6") {
             tempVolume = 16.983;
+            radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.46;
             atomicNumber = 6;
             *asf_number = 104;
         } else if (atom_type == "C7") {
             tempVolume = 26.740;
+            radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.46;
             atomicNumber = 6;
             *asf_number = 102;
         } else if (atom_type == "C1\'") {
             tempVolume = 13.216;
+            radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.46;
             atomicNumber = 6;
             *asf_number = 100;
         } else if (atom_type == "C2\'") {
             tempVolume = 12.701;
+            radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.46;
             atomicNumber = 6;
             *asf_number = 100;
         } else if (atom_type == "C3\'") {
             tempVolume = 12.633;
+            radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.46;
             atomicNumber = 6;
             *asf_number = 100;
         } else if (atom_type == "C4\'") {
             tempVolume = 13.290;
+            radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.46;
             atomicNumber = 6;
             *asf_number = 100;
         } else if (atom_type == "O3\'") {
             tempVolume = 14.001;
+            radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.46;
             atomicNumber = 8;
             *asf_number = 105;
         } else if (atom_type == "O4\'") {
             tempVolume = 12.686;
+            radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.46;
             atomicNumber = 8;
             *asf_number = 8;
         } else if (atom_type == "C5\'") {
             tempVolume = 21.398;
+            radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.46;
             atomicNumber = 6;
             *asf_number = 101;
         } else if (atom_type == "O5\'") {
             tempVolume = 13.913;
+            radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.46;
             atomicNumber = 8;
             *asf_number = 8;
         } else if (atom_type == "P") {
             tempVolume = 11.853;
-            radii = 2.04;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 2.04;
             atomicNumber = 15;
             *asf_number = 15;
         } else if (atom_type == "O1P") {
             tempVolume = 16.235;
-            radii = 1.46;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.46;
             atomicNumber = 8;
             *asf_number = 8;
         } else if (atom_type == "O2P") {
             tempVolume = 16.224;
-            radii = 1.46;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.46;
             atomicNumber = 8;
             *asf_number = 8;
         } else if (atom_type == "OP1") {
             tempVolume = 16.235;
-            radii = 1.46;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.46;
             atomicNumber = 8;
             *asf_number = 8;
         } else if (atom_type == "OP2") {
             tempVolume = 16.224;
-            radii = 1.46;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.46;
             atomicNumber = 8;
             *asf_number = 8;
         } else if (atom_type == "O3P") {
             tempVolume = 16.21; // median of first two
-            radii = 1.46;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.46;
             atomicNumber = 8;
             *asf_number = 8;
         } else if (atom_type == "OP3") {
             tempVolume = 16.21;
-            radii = 1.46;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.46;
             atomicNumber = 8;
             *asf_number = 8;
         }
@@ -1239,27 +1526,32 @@ float PDBModel::residueToVolume(std::string atom_type,
         //tempVolume = 63.756;
         if (atom_type == "N") {
             tempVolume = 14.480;
-            radii = 1.7f;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.7f;
             atomicNumber = 7;
             *asf_number = 108;
         } else if (atom_type == "CA") {
             tempVolume = 23.470;
-            radii = 1.90;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.90;
             atomicNumber = 6;
             *asf_number = 100;
         } else if (atom_type == "C") {
             tempVolume = 9.652;
-            radii = 1.75;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.75;
             atomicNumber = 6;
             *asf_number = 6;
         } else if (atom_type == "O") {
             tempVolume = 16.154;
-            radii = 1.52;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.52;
             atomicNumber = 8;
             *asf_number = 8;
         } else if (atom_type == "OXT") { // taken from CRYSOL TABLE as O* (deprotonated oxygen)
             tempVolume = 9.13;
-            radii = 1.49;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.49;
             atomicNumber = 8;
             *asf_number = 106;
         }
@@ -1267,32 +1559,38 @@ float PDBModel::residueToVolume(std::string atom_type,
         //tempVolume = 89.266;
         if (atom_type == "N") {
             tempVolume = 13.872;
-            radii = 1.7f;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.7f;
             atomicNumber = 7;
             *asf_number = 108;
         } else if (atom_type == "CA") {
             tempVolume = 13.959;
-            radii = 1.90;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.90;
             atomicNumber = 6;
             *asf_number = 100;
         } else if (atom_type == "C") {
             tempVolume = 8.858;
-            radii = 1.75;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.75;
             atomicNumber = 6;
             *asf_number = 6;
         } else if (atom_type == "O") {
             tempVolume = 16.026;
-            radii = 1.52;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.52;
             atomicNumber = 8;
             *asf_number = 8;
         } else if (atom_type == "CB") {
             tempVolume = 36.551;
-            radii = 1.91;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.91;
             atomicNumber = 6;
             *asf_number = 102;
         } else if (atom_type == "OXT") { // taken from CRYSOL TABLE as O* (deprotonated oxygen)
             tempVolume = 9.13;
-            radii = 1.49;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.49;
             atomicNumber = 8;
             *asf_number = 106;
         }
@@ -1300,42 +1598,50 @@ float PDBModel::residueToVolume(std::string atom_type,
         //tempVolume = 138.164;
         if (atom_type == "N") {
             tempVolume = 13.553;
-            radii = 1.7f;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.7f;
             atomicNumber = 7;
             *asf_number = 108;
         } else if (atom_type == "CA") {
             tempVolume = 13.078;
-            radii = 1.90;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.90;
             atomicNumber = 6;
             *asf_number = 100;
         } else if (atom_type == "C") {
             tempVolume = 8.528;
-            radii = 1.75;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.75;
             atomicNumber = 6;
             *asf_number = 6;
         } else if (atom_type == "O") {
             tempVolume = 15.998;
-            radii = 1.52;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.52;
             atomicNumber = 8;
             *asf_number = 8;
         } else if (atom_type == "CB") {
             tempVolume = 14.514;
-            radii = 2.01;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 2.01;
             atomicNumber = 6;
             *asf_number = 100;
         } else if (atom_type == "CG1") {
             tempVolume = 36.320;
-            radii = 1.92;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.92;
             atomicNumber = 6;
             *asf_number = 102;
         } else if (atom_type == "CG2") {
             tempVolume = 36.173;
-            radii = 1.92;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.92;
             atomicNumber = 6;
             *asf_number = 102;
         } else if (atom_type == "OXT") { // taken from CRYSOL TABLE as O* (deprotonated oxygen)
             tempVolume = 9.13;
-            radii = 1.49;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.49;
             atomicNumber = 8;
             *asf_number = 106;
         }
@@ -1343,47 +1649,56 @@ float PDBModel::residueToVolume(std::string atom_type,
         //tempVolume = 163.087;
         if (atom_type == "N") {
             tempVolume = 13.517;
-            radii = 1.7f;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.7f;
             atomicNumber = 7;
             *asf_number = 108;
         } else if (atom_type == "CA") {
             tempVolume = 13.055;
-            radii = 1.90;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.90;
             atomicNumber = 6;
             *asf_number = 100;
         } else if (atom_type == "C") {
             tempVolume = 8.781;
-            radii = 1.75;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.75;
             atomicNumber = 6;
             *asf_number = 6;
         } else if (atom_type == "O") {
             tempVolume = 15.957;
-            radii = 1.52;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.52;
             atomicNumber = 8;
             *asf_number = 8;
         } else if (atom_type == "CB") {
             tempVolume = 22.818;
-            radii = 1.91;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.91;
             atomicNumber = 6;
             *asf_number = 101;
         } else if (atom_type == "CG") {
             tempVolume = 14.704;
-            radii = 2.01;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 2.01;
             atomicNumber = 6;
             *asf_number = 100;
         } else if (atom_type == "CD1") {
             tempVolume = 37.235;
-            radii = 1.92;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.92;
             atomicNumber = 6;
             *asf_number = 102;
         } else if (atom_type == "CD2") {
             tempVolume = 37.020;
-            radii = 1.92;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.92;
             atomicNumber = 6;
             *asf_number = 102;
         } else if (atom_type == "OXT") { // taken from CRYSOL TABLE as O* (deprotonated oxygen)
             tempVolume = 9.13;
-            radii = 1.49;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.49;
             atomicNumber = 8;
             *asf_number = 106;
         }
@@ -1392,47 +1707,56 @@ float PDBModel::residueToVolume(std::string atom_type,
         //tempVolume = 163.014;
         if (atom_type == "N") {
             tempVolume = 13.493;
-            radii = 1.7f;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.7f;
             atomicNumber = 7;
             *asf_number = 108;
         } else if (atom_type == "CA") {
             tempVolume = 12.946;
-            radii = 1.90;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.90;
             atomicNumber = 6;
             *asf_number = 100;
         } else if (atom_type == "C") {
             tempVolume = 8.445;
-            radii = 1.75;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.75;
             atomicNumber = 6;
             *asf_number = 6;
         } else if (atom_type == "O") {
             tempVolume = 15.930;
-            radii = 1.52;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.52;
             atomicNumber = 8;
             *asf_number = 8;
         } else if (atom_type == "CB") {
             tempVolume = 14.146;
-            radii = 1.91;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.91;
             atomicNumber = 6;
             *asf_number = 100;
         } else if (atom_type == "CG1") {
             tempVolume = 24.017;
-            radii = 1.91;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.91;
             atomicNumber = 6;
             *asf_number = 101;
         } else if (atom_type == "CG2") { // assuming this is the gamma methyl group
             tempVolume = 35.763;
-            radii = 1.92;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.92;
             atomicNumber = 6;
             *asf_number = 102;
         } else if (atom_type == "CD1") {
             tempVolume = 38.219;
-            radii = 1.92;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.92;
             atomicNumber = 6;
             *asf_number = 102;
         } else if (atom_type == "OXT") { // taken from CRYSOL TABLE as O* (deprotonated oxygen)
             tempVolume = 9.13;
-            radii = 1.49;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.49;
             atomicNumber = 8;
             *asf_number = 106;
         }
@@ -1441,42 +1765,50 @@ float PDBModel::residueToVolume(std::string atom_type,
         //tempVolume = 121.285;
         if (atom_type == "N") {
             tempVolume = 8.650;
-            radii = 1.7f;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.7f;
             atomicNumber = 7;
             *asf_number = 7;
         } else if (atom_type == "CA") {
             tempVolume = 13.828;
-            radii = 1.90;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.90;
             atomicNumber = 6;
             *asf_number = 100;
         } else if (atom_type == "C") {
             tempVolume = 8.768;
-            radii = 1.75;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.75;
             atomicNumber = 6;
             *asf_number = 6;
         } else if (atom_type == "O") {
             tempVolume = 15.856;
-            radii = 1.52;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.52;
             atomicNumber = 8;
             *asf_number = 8;
         } else if (atom_type == "CB") {
             tempVolume = 25.314;
-            radii = 1.91;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.91;
             atomicNumber = 6;
             *asf_number = 101;
         } else if (atom_type == "CG") {
             tempVolume = 25.480;
-            radii = 1.91;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.91;
             atomicNumber = 6;
             *asf_number = 101;
         } else if (atom_type == "CD") {
             tempVolume = 23.390;
-            radii = 1.91;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.91;
             atomicNumber = 6;
             *asf_number = 101;
         } else if (atom_type == "OXT") { // taken from CRYSOL TABLE as O* (deprotonated oxygen)
             tempVolume = 9.13;
-            radii = 1.49;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.49;
             atomicNumber = 8;
             *asf_number = 106;
         }
@@ -1484,47 +1816,56 @@ float PDBModel::residueToVolume(std::string atom_type,
         //tempVolume = 165.815;
         if (atom_type == "N") {
             tempVolume = 13.405;
-            radii = 1.7f;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.7f;
             atomicNumber = 7;
             *asf_number = 108;
         } else if (atom_type == "CA") {
             tempVolume = 13.194;
-            radii = 1.90;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.90;
             atomicNumber = 6;
             *asf_number = 100;
         } else if (atom_type == "C") {
             tempVolume = 8.756;
-            radii = 1.75;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.75;
             atomicNumber = 6;
             *asf_number = 6;
         } else if (atom_type == "O") {
             tempVolume = 16.002;
-            radii = 1.52;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.52;
             atomicNumber = 8;
             *asf_number = 8;
         } else if (atom_type == "CB") {
             tempVolume = 23.418;
-            radii = 1.91;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.91;
             atomicNumber = 6;
             *asf_number = 101;
         } else if (atom_type == "CG") {
             tempVolume = 23.830;
-            radii = 1.92;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.92;
             atomicNumber = 6;
             *asf_number = 101;
         } else if (atom_type == "SE") {
             tempVolume = 30.207;
-            radii = 1.94;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.94;
             atomicNumber = 16;
             *asf_number = 16;
         } else if (atom_type == "CE") {
             tempVolume = 37.003;
-            radii = 1.92;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.92;
             atomicNumber = 6;
             *asf_number = 102;
         } else if (atom_type == "OXT") { // taken from CRYSOL TABLE as O* (deprotonated oxygen)
             tempVolume = 9.13;
-            radii = 1.49;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.49;
             atomicNumber = 8;
             *asf_number = 106;
         }
@@ -1533,47 +1874,56 @@ float PDBModel::residueToVolume(std::string atom_type,
         //tempVolume = 165.815;
         if (atom_type == "N") {
             tempVolume = 13.405;
-            radii = 1.7f;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.7f;
             atomicNumber = 7;
             *asf_number = 108;
         } else if (atom_type == "CA") {
             tempVolume = 13.194;
-            radii = 1.90;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.90;
             atomicNumber = 6;
             *asf_number = 100;
         } else if (atom_type == "C") {
             tempVolume = 8.756;
-            radii = 1.75;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.75;
             atomicNumber = 6;
             *asf_number = 6;
         } else if (atom_type == "O") {
             tempVolume = 16.002;
-            radii = 1.52;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.52;
             atomicNumber = 8;
             *asf_number = 8;
         } else if (atom_type == "CB") {
             tempVolume = 23.418;
-            radii = 1.91;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.91;
             atomicNumber = 6;
             *asf_number = 101;
         } else if (atom_type == "CG") {
             tempVolume = 23.830;
-            radii = 1.91;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.91;
             atomicNumber = 6;
             *asf_number = 101;
         } else if (atom_type == "SD") {
             tempVolume = 30.207;
-            radii = 1.94;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.94;
             atomicNumber = 16;
             *asf_number = 16;
         } else if (atom_type == "CE") {
             tempVolume = 37.003;
-            radii = 1.92;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.92;
             atomicNumber = 6;
             *asf_number = 102;
         } else if (atom_type == "OXT") { // taken from CRYSOL TABLE as O* (deprotonated oxygen)
             tempVolume = 9.13;
-            radii = 1.49;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.49;
             atomicNumber = 8;
             *asf_number = 106;
         }
@@ -1582,62 +1932,74 @@ float PDBModel::residueToVolume(std::string atom_type,
         //tempVolume = 190.843;
         if (atom_type == "N") {
             tempVolume = 13.524;
-            radii = 1.7f;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.7f;
             atomicNumber = 7;
             *asf_number = 108;
         } else if (atom_type == "CA") {
             tempVolume = 13.371;
-            radii = 1.90;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.90;
             atomicNumber = 6;
             *asf_number = 100;
         } else if (atom_type == "C") {
             tempVolume = 8.697;
-            radii = 1.75;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.75;
             atomicNumber = 6;
             *asf_number = 6;
         } else if (atom_type == "O") {
             tempVolume = 15.961;
-            radii = 1.52;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.52;
             atomicNumber = 8;
             *asf_number = 8;
         } else if (atom_type == "CB") {
             tempVolume = 23.623;
-            radii = 1.91;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.91;
             atomicNumber = 6;
             *asf_number = 101;
         } else if (atom_type == "CG") {
             tempVolume = 9.684;
-            radii = 1.74;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.74;
             atomicNumber = 6;
             *asf_number = 6;
         } else if (atom_type == "CD1") {
             tempVolume = 20.325;
-            radii = 1.82;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.82;
             atomicNumber = 6;
             *asf_number = 104;
         } else if (atom_type == "CD2") {
             tempVolume = 20.948;
-            radii = 1.82;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.82;
             atomicNumber = 6;
             *asf_number = 104;
         } else if (atom_type == "CE1") {
             tempVolume = 21.532;
-            radii = 1.82;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.82;
             atomicNumber = 6;
             *asf_number = 104;
         } else if (atom_type == "CE2") {
             tempVolume = 21.625;
-            radii = 1.82;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.82;
             atomicNumber = 6;
             *asf_number = 104;
         } else if (atom_type == "CZ") {
             tempVolume = 21.555;
-            radii = 1.82;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.82;
             atomicNumber = 6;
             *asf_number = 104;
         } else if (atom_type == "OXT") { // taken from CRYSOL TABLE as O* (deprotonated oxygen)
             tempVolume = 9.13;
-            radii = 1.49;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.49;
             atomicNumber = 8;
             *asf_number = 106;
         }
@@ -1646,67 +2008,80 @@ float PDBModel::residueToVolume(std::string atom_type,
         //tempVolume = 194.633;
         if (atom_type == "N") {
             tempVolume = 13.473;
-            radii = 1.7f;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.7f;
             atomicNumber = 7;
             *asf_number = 108;
         } else if (atom_type == "CA") {
             tempVolume = 13.249;
-            radii = 1.90;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.90;
             atomicNumber = 6;
             *asf_number = 100;
         } else if (atom_type == "C") {
             tempVolume = 8.714;
-            radii = 1.75;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.75;
             atomicNumber = 6;
             *asf_number = 6;
         } else if (atom_type == "O") {
             tempVolume = 15.901;
-            radii = 1.52;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.52;
             atomicNumber = 8;
             *asf_number = 8;
         } else if (atom_type == "CB") {
             tempVolume = 23.426;
-            radii = 1.91;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.91;
             atomicNumber = 6;
             *asf_number = 101;
         } else if (atom_type == "CG") {
             tempVolume = 9.695;
-            radii = 1.74;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.74;
             atomicNumber = 6;
             *asf_number = 6;
         } else if (atom_type == "CD1") {
             tempVolume = 20.057;
-            radii = 1.82;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.82;
             atomicNumber = 6;
             *asf_number = 104;
         } else if (atom_type == "CD2") {
             tempVolume = 20.578;
-            radii = 1.82;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.82;
             atomicNumber = 6;
             *asf_number = 104;
         } else if (atom_type == "CE1") {
             tempVolume = 20.534;
-            radii = 1.82;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.82;
             atomicNumber = 6;
             *asf_number = 104;
         } else if (atom_type == "CE2") {
             tempVolume = 20.577;
-            radii = 1.82;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.82;
             atomicNumber = 6;
             *asf_number = 104;
         } else if (atom_type == "CZ") {
             tempVolume = 9.888;
-            radii = 1.74;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.74;
             atomicNumber = 6;
             *asf_number = 6;
         } else if (atom_type == "OH") { // oxygen is in resonance with ring
             tempVolume = 18.541;
-            radii = 1.54;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.54;
             atomicNumber = 8;
             *asf_number = 107;
         } else if (atom_type == "OXT") { // taken from CRYSOL TABLE as O* (deprotonated oxygen)
             tempVolume = 9.13;
-            radii = 1.49;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.49;
             atomicNumber = 8;
             *asf_number = 106;
         }
@@ -1715,77 +2090,92 @@ float PDBModel::residueToVolume(std::string atom_type,
         //tempVolume = 226.384;
         if (atom_type == "N") {
             tempVolume = 13.639;
-            radii = 1.7f;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.7f;
             atomicNumber = 7;
             *asf_number = 108;
         } else if (atom_type == "CA") {
             tempVolume = 13.323;
-            radii = 1.90;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.90;
             atomicNumber = 6;
             *asf_number = 100;
         } else if (atom_type == "C") {
             tempVolume = 8.687;
-            radii = 1.75;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.75;
             atomicNumber = 6;
             *asf_number = 6;
         } else if (atom_type == "O") {
             tempVolume = 15.797;
-            radii = 1.52;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.52;
             atomicNumber = 8;
             *asf_number = 8;
         } else if (atom_type == "CB") {
             tempVolume = 23.826;
-            radii = 1.91;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.91;
             atomicNumber = 6;
             *asf_number = 101;
         } else if (atom_type == "CG") {
             tempVolume = 9.915;
-            radii = 1.74;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.74;
             atomicNumber = 6;
             *asf_number = 6;
         } else if (atom_type == "CD1") {
             tempVolume = 20.597;
-            radii = 1.82;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.82;
             atomicNumber = 6;
             *asf_number = 104;
         } else if (atom_type == "CD2") {
             tempVolume = 10.068;
-            radii = 1.74;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.74;
             atomicNumber = 6;
             *asf_number = 6;
         } else if (atom_type == "NE1") {
             tempVolume = 16.723;
-            radii = 1.66;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.66;
             atomicNumber = 7;
             *asf_number = 113; // guanine like
         } else if (atom_type == "CE2") {
             tempVolume = 9.848;
-            radii = 1.74;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.74;
             atomicNumber = 6;
             *asf_number = 6;
         } else if (atom_type == "CE3") {
             tempVolume = 20.383;
-            radii = 1.82;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.82;
             atomicNumber = 6;
             *asf_number = 104;
         } else if (atom_type == "CZ2") {
             tempVolume = 20.931;
-            radii = 1.82;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.82;
             atomicNumber = 6;
             *asf_number = 104;
         } else if (atom_type == "CZ3") {
             tempVolume = 21.429;
-            radii = 1.82;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.82;
             atomicNumber = 6;
             *asf_number = 104;
         } else if (atom_type == "CH2") {
             tempVolume = 21.219;
-            radii = 1.82;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.82;
             atomicNumber = 6;
             *asf_number = 104;
         } else if (atom_type == "OXT") { // taken from CRYSOL TABLE as O* (deprotonated oxygen)
             tempVolume = 9.13;
-            radii = 1.49;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.49;
             atomicNumber = 8;
             *asf_number = 106;
         }
@@ -1794,37 +2184,44 @@ float PDBModel::residueToVolume(std::string atom_type,
         //tempVolume = 93.497;
         if (atom_type == "N") {
             tempVolume = 13.808;
-            radii = 1.70;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.70;
             atomicNumber = 7;
             *asf_number = 108;
         } else if (atom_type == "CA") {
             tempVolume = 13.351;
-            radii = 1.90;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.90;
             atomicNumber = 6;
             *asf_number = 100;
         } else if (atom_type == "C") {
             tempVolume = 8.858;
-            radii = 1.75;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.75;
             atomicNumber = 6;
             *asf_number = 6;
         } else if (atom_type == "O") {
             tempVolume = 15.860;
-            radii = 1.52;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.52;
             atomicNumber = 8;
             *asf_number = 8;
         } else if (atom_type == "CB") {
             tempVolume = 23.599;
-            radii = 1.91;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.91;
             atomicNumber = 6;
             *asf_number = 101;
         } else if (atom_type == "OG") {
             tempVolume = 18.021;
-            radii = 1.54;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.54;
             atomicNumber = 8;
             *asf_number = 105;
         } else if (atom_type == "OXT") { // taken from CRYSOL TABLE as O* (deprotonated oxygen)
             tempVolume = 9.13;
-            radii = 1.49;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.49;
             atomicNumber = 8;
             *asf_number = 106;
         }
@@ -1833,42 +2230,50 @@ float PDBModel::residueToVolume(std::string atom_type,
         //tempVolume = 119.613;
         if (atom_type == "N") {
             tempVolume = 13.544;
-            radii = 1.7f;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.7f;
             atomicNumber = 7;
             *asf_number = 108;
         } else if (atom_type == "CA") {
             tempVolume = 13.025;
-            radii = 1.90;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.90;
             atomicNumber = 6;
             *asf_number = 100;
         } else if (atom_type == "C") {
             tempVolume = 8.685;
-            radii = 1.75;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.75;
             atomicNumber = 6;
             *asf_number = 6;
         } else if (atom_type == "O") {
             tempVolume = 15.795;
-            radii = 1.52;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.52;
             atomicNumber = 8;
             *asf_number = 8;
         } else if (atom_type == "CB") {
             tempVolume = 14.687;
-            radii = 1.91;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.91;
             atomicNumber = 6;
             *asf_number = 100;
         } else if (atom_type == "OG1") {
             tempVolume = 17.610;
-            radii = 1.54;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.54;
             atomicNumber = 8;
             *asf_number = 105;
         } else if (atom_type == "CG2") {
             tempVolume = 36.265;
-            radii = 1.92;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.92;
             atomicNumber = 6;
             *asf_number = 102;
         } else if (atom_type == "OXT") { // taken from CRYSOL TABLE as O* (deprotonated oxygen)
             tempVolume = 9.13;
-            radii = 1.49;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.49;
             atomicNumber = 8;
             *asf_number = 106;
         }
@@ -1878,47 +2283,56 @@ float PDBModel::residueToVolume(std::string atom_type,
         //tempVolume = 122.353;
         if (atom_type == "N") {
             tempVolume = 13.525;
-            radii = 1.7f;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.7f;
             atomicNumber = 7;
             *asf_number = 108;
         } else if (atom_type == "CA") {
             tempVolume = 13.052;
-            radii = 1.90;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.90;
             atomicNumber = 6;
             *asf_number = 100;
         } else if (atom_type == "C") {
             tempVolume = 8.853;
-            radii = 1.75;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.75;
             atomicNumber = 6;
             *asf_number = 6;
         } else if (atom_type == "O") {
             tempVolume = 15.857;
-            radii = 1.52;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.52;
             atomicNumber = 8;
             *asf_number = 8;
         } else if (atom_type == "CB") {
             tempVolume = 22.756;
-            radii = 1.91;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.91;
             atomicNumber = 6;
             *asf_number = 101;
         } else if (atom_type == "CG") {
             tempVolume = 9.537;
-            radii = 1.81;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.81;
             atomicNumber = 6;
             *asf_number = 6;
         } else if (atom_type == "OD1") {
             tempVolume = 16.247;
-            radii = 1.52;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.52;
             atomicNumber = 8;
             *asf_number = 8;
         } else if (atom_type == "ND2") {
             tempVolume = 22.525;
-            radii = 1.67;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.67;
             atomicNumber = 7;
             *asf_number = 109;
         } else if (atom_type == "OXT") { // taken from CRYSOL TABLE as O* (deprotonated oxygen)
             tempVolume = 9.13;
-            radii = 1.49;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.49;
             atomicNumber = 8;
             *asf_number = 106;
         }
@@ -1927,51 +2341,62 @@ float PDBModel::residueToVolume(std::string atom_type,
         //tempVolume = 146.913;
         if (atom_type == "N") {
             tempVolume = 13.449;
-            radii = 1.7f;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.7f;
             atomicNumber = 7;
             *asf_number = 108;
         } else if (atom_type == "CA") {
             tempVolume = 13.231;
-            radii = 1.90;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.90;
             atomicNumber = 6;
             *asf_number = 100;
         } else if (atom_type == "C") {
             tempVolume = 8.744;
-            radii = 1.75;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.75;
             atomicNumber = 6;
             *asf_number = 6;
         } else if (atom_type == "O") {
             tempVolume = 15.767;
-            radii = 1.52;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.52;
             atomicNumber = 8;
             *asf_number = 8;
         } else if (atom_type == "CB") {
             tempVolume = 23.059;
-            radii = 1.91;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.91;
             atomicNumber = 6;
             *asf_number = 101;
         } else if (atom_type == "CG") {
             tempVolume = 23.218;
+            radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.46;
             atomicNumber = 6;
             *asf_number = 101;
         } else if (atom_type == "CD") {
             tempVolume = 9.618;
-            radii = 1.81;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.81;
             atomicNumber = 6;
             *asf_number = 6;
         } else if (atom_type == "OE1") {
             tempVolume = 16.571;
-            radii = 1.52;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.52;
             atomicNumber = 8;
             *asf_number = 8;
         } else if (atom_type == "NE2") {
             tempVolume = 23.255;
-            radii = 1.67;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.67;
             atomicNumber = 7;
             *asf_number = 109;
         } else if (atom_type == "OXT") { // taken from CRYSOL TABLE as O* (deprotonated oxygen)
             tempVolume = 9.13;
-            radii = 1.49;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.49;
             atomicNumber = 8;
             *asf_number = 106;
         }
@@ -1979,37 +2404,44 @@ float PDBModel::residueToVolume(std::string atom_type,
     } else if ((residue).compare("CYS") == 0 || residue.compare("CYX") == 0) {
         if (atom_type == "N") {
             tempVolume = 13.865;
-            radii = 1.7f;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.7f;
             atomicNumber = 7;
             *asf_number = 108;
         } else if (atom_type == "CA") {
             tempVolume = 13.583;
-            radii = 1.90;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.90;
             atomicNumber = 6;
             *asf_number = 100;
         } else if (atom_type == "C") {
             tempVolume = 8.786;
-            radii = 1.75;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.75;
             atomicNumber = 6;
             *asf_number = 6;
         } else if (atom_type == "O") {
             tempVolume = 16.382;
-            radii = 1.52;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.52;
             atomicNumber = 8;
             *asf_number = 8;
         } else if (atom_type == "CB") {
             tempVolume = 23.471;
-            radii = 1.91;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.91;
             atomicNumber = 6;
             *asf_number = 101;
         } else if (atom_type == "SG") {
             tempVolume = 36.748;
-            radii = 1.88;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.88;
             atomicNumber = 16;
             *asf_number = 115;
         } else if (atom_type == "OXT") { // taken from CRYSOL TABLE as O* (deprotonated oxygen)
             tempVolume = 9.13;
-            radii = 1.49;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.49;
             atomicNumber = 8;
             *asf_number = 106;
         }
@@ -2018,37 +2450,44 @@ float PDBModel::residueToVolume(std::string atom_type,
         //tempVolume = 102.500;
         if (atom_type == "N") {
             tempVolume = 13.631;
-            radii = 1.7f;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.7f;
             atomicNumber = 7;
             *asf_number = 108;
         } else if (atom_type == "CA") {
             tempVolume = 13.081;
-            radii = 1.90;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.90;
             atomicNumber = 6;
             *asf_number = 100;
         } else if (atom_type == "C") {
             tempVolume = 8.742;
-            radii = 1.75;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.75;
             atomicNumber = 6;
             *asf_number = 6;
         } else if (atom_type == "O") {
             tempVolume = 16.093;
-            radii = 1.52;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.52;
             atomicNumber = 8;
             *asf_number = 8;
         } else if (atom_type == "CB") {
             tempVolume = 23.447;
-            radii = 1.91;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.91;
             atomicNumber = 6;
             *asf_number = 101;
         } else if (atom_type == "SG") {
             tempVolume = 27.507;
-            radii = 1.88;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.88;
             atomicNumber = 16;
             *asf_number = 16;
         } else if (atom_type == "OXT") { // taken from CRYSOL TABLE as O* (deprotonated oxygen)
             tempVolume = 9.13;
-            radii = 1.49;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.49;
             atomicNumber = 8;
             *asf_number = 106;
         }
@@ -2058,57 +2497,68 @@ float PDBModel::residueToVolume(std::string atom_type,
         //tempVolume = 157.464;
         if (atom_type == "N") {
             tempVolume = 13.532;
-            radii = 1.70;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.70;
             atomicNumber = 7;
             *asf_number = 108;
         } else if (atom_type == "CA") {
             tempVolume = 13.335;
-            radii = 1.90;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.90;
             atomicNumber = 6;
             *asf_number = 100;
         } else if (atom_type == "C") {
             tempVolume = 8.760;
-            radii = 1.75;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.75;
             atomicNumber = 6;
             *asf_number = 6;
         } else if (atom_type == "O") {
             tempVolume = 15.855;
-            radii = 1.52;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.52;
             atomicNumber = 8;
             *asf_number = 8;
         } else if (atom_type == "CB") {
             tempVolume = 23.443;
-            radii = 1.91;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.91;
             atomicNumber = 6;
             *asf_number = 101;
         } else if (atom_type == "CG") {
             tempVolume = 9.870;
-            radii = 1.91;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.91;
             atomicNumber = 6;
             *asf_number = 6;
         } else if (atom_type == "CD2") {
             tempVolume = 20.938;
-            radii = 1.91;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.91;
             atomicNumber = 6;
             *asf_number = 104;
         } else if (atom_type == "ND1") {
             tempVolume = 15.483;
-            radii = 1.65;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.65;
             atomicNumber = 7;
             *asf_number = 7;
         } else if (atom_type == "CE1") {
             tempVolume = 20.491;
-            radii = 2.01;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 2.01;
             atomicNumber = 6;
             *asf_number = 104;
         } else if (atom_type == "NE2") {
             tempVolume = 15.758;
-            radii = 1.65;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.65;
             atomicNumber = 7;
             *asf_number = 114;
         } else if (atom_type == "OXT") { // taken from CRYSOL TABLE as O* (deprotonated oxygen)
             tempVolume = 9.13;
-            radii = 1.49;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.49;
             atomicNumber = 8;
             *asf_number = 106;
         }
@@ -2117,52 +2567,62 @@ float PDBModel::residueToVolume(std::string atom_type,
         //tempVolume = 138.805;
         if (atom_type == "N") {
             tempVolume = 13.461;
-            radii = 1.70;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.70;
             atomicNumber = 7;
             *asf_number = 108;
         } else if (atom_type == "CA") {
             tempVolume = 13.284;
-            radii = 1.90;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.90;
             atomicNumber = 6;
             *asf_number = 100;
         } else if (atom_type == "C") {
             tempVolume = 8.631;
-            radii = 1.75;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.75;
             atomicNumber = 6;
             *asf_number = 6;
         } else if (atom_type == "O") {
             tempVolume = 15.765;
-            radii = 1.52;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.52;
             atomicNumber = 8;
             *asf_number = 8;
         } else if (atom_type == "CB") {
             tempVolume = 23.214;
-            radii = 1.91;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.91;
             atomicNumber = 6;
             *asf_number = 101;
         } else if (atom_type == "CG") {
             tempVolume = 23.304;
-            radii = 1.91;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.91;
             atomicNumber = 6;
             *asf_number = 101;
         } else if (atom_type == "CD") {
             tempVolume = 9.437;
-            radii = 1.88;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.88;
             atomicNumber = 6;
             *asf_number = 6;
         } else if (atom_type == "OE1") {
             tempVolume = 15.497;
-            radii = 1.52;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.52;
             atomicNumber = 8;
             *asf_number = 107;
         } else if (atom_type == "OE2") {
             tempVolume = 16.213;
-            radii = 1.52;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.52;
             atomicNumber = 8;
             *asf_number = 107;
         } else if (atom_type == "OXT") { // taken from CRYSOL TABLE as O* (deprotonated oxygen)
             tempVolume = 9.13;
-            radii = 1.49;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.49;
             atomicNumber = 8;
             *asf_number = 106;
         }
@@ -2171,47 +2631,56 @@ float PDBModel::residueToVolume(std::string atom_type,
         //tempVolume = 114.433;
         if (atom_type == "N") {
             tempVolume = 13.654;
-            radii = 1.70;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.70;
             atomicNumber = 7;
             *asf_number = 108;
         } else if (atom_type == "CA") {
             tempVolume = 13.254;
-            radii = 1.90;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.90;
             atomicNumber = 6;
             *asf_number = 100;
         } else if (atom_type == "C") {
             tempVolume = 8.750;
-            radii = 1.75;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.75;
             atomicNumber = 6;
             *asf_number = 6;
         } else if (atom_type == "O") {
             tempVolume = 15.757;
-            radii = 1.52;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.52;
             atomicNumber = 8;
             *asf_number = 8;
         } else if (atom_type == "CB") {
             tempVolume = 23.022;
-            radii = 1.91;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.91;
             atomicNumber = 6;
             *asf_number = 101;
         } else if (atom_type == "CG") {
             tempVolume = 9.336;
-            radii = 1.88;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.88;
             atomicNumber = 6;
             *asf_number = 6;
         } else if (atom_type == "OD1") {
             tempVolume = 15.078;
-            radii = 1.52;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.52;
             atomicNumber = 8;
             *asf_number = 107;
         } else if (atom_type == "OD2") {
             tempVolume = 15.582;
-            radii = 1.52;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.52;
             atomicNumber = 8;
             *asf_number = 107;
         } else if (atom_type == "OXT") { // taken from CRYSOL TABLE as O* (deprotonated oxygen)
             tempVolume = 9.13;
-            radii = 1.49;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.49;
             atomicNumber = 8;
             *asf_number = 106;
         }
@@ -2220,62 +2689,74 @@ float PDBModel::residueToVolume(std::string atom_type,
         //tempVolume = 190.331;
         if (atom_type == "N") {
             tempVolume = 13.486;
-            radii = 1.70;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.70;
             atomicNumber = 7;
             *asf_number = 108;
         } else if (atom_type == "CA") {
             tempVolume = 13.310;
-            radii = 1.90;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.90;
             atomicNumber = 6;
             *asf_number = 100;
         } else if (atom_type == "C") {
             tempVolume = 8.779;
-            radii = 1.75;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.75;
             atomicNumber = 6;
             *asf_number = 6;
         } else if (atom_type == "O") {
             tempVolume = 15.916;
-            radii = 1.52;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.52;
             atomicNumber = 8;
             *asf_number = 8;
         } else if (atom_type == "CB") {
             tempVolume = 22.833;
-            radii = 1.91;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.91;
             atomicNumber = 6;
             *asf_number = 101;
         } else if (atom_type == "CG") {
             tempVolume = 23.273;
-            radii = 1.91;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.91;
             atomicNumber = 6;
             *asf_number = 101;
         } else if (atom_type == "CD") {
             tempVolume = 22.849;
-            radii = 1.91;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.91;
             atomicNumber = 6;
             *asf_number = 101;
         } else if (atom_type == "NE") {
             tempVolume = 15.019;
-            radii = 1.70;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.70;
             atomicNumber = 7;
             *asf_number = 108;
         } else if (atom_type == "CZ") {
             tempVolume = 9.678;
-            radii = 1.74;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.74;
             atomicNumber = 6;
             *asf_number = 6;
         } else if (atom_type == "NH1") {
             tempVolume = 22.056;
-            radii = 1.66;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.66;
             atomicNumber = 7;
             *asf_number = 113;
         } else if (atom_type == "NH2") {
             tempVolume = 23.132;
-            radii = 1.66;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.66;
             atomicNumber = 7;
             *asf_number = 109;
         } else if (atom_type == "OXT") { // taken from CRYSOL TABLE as O* (deprotonated oxygen)
             tempVolume = 9.13;
-            radii = 1.49;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.49;
             atomicNumber = 8;
             *asf_number = 106;
         }
@@ -2284,52 +2765,62 @@ float PDBModel::residueToVolume(std::string atom_type,
         //tempVolume = 165.083;
         if (atom_type == "N") {
             tempVolume = 13.429;
-            radii = 1.70;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.70;
             atomicNumber = 7;
             *asf_number = 108;
         } else if (atom_type == "CA") {
             tempVolume = 13.217;
-            radii = 1.90;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.90;
             atomicNumber = 6;
             *asf_number = 100;
         } else if (atom_type == "C") {
             tempVolume = 8.696;
-            radii = 1.75;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.75;
             atomicNumber = 6;
             *asf_number = 6;
         } else if (atom_type == "O") {
             tempVolume = 15.818;
-            radii = 1.52;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.52;
             atomicNumber = 8;
             *asf_number = 8;
         } else if (atom_type == "CB") {
             tempVolume = 22.578;
-            radii = 1.91;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.91;
             atomicNumber = 6;
             *asf_number = 101;
         } else if (atom_type == "CG") {
             tempVolume = 22.847;
-            radii = 1.91;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.91;
             atomicNumber = 6;
             *asf_number = 101;
         } else if (atom_type == "CD") {
             tempVolume = 23.365;
-            radii = 1.91;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.91;
             atomicNumber = 6;
             *asf_number = 101;
         } else if (atom_type == "CE") {
             tempVolume = 23.720;
-            radii = 1.91;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.91;
             atomicNumber = 6;
             *asf_number = 101;
         } else if (atom_type == "NZ") {
             tempVolume = 21.413;
-            radii = 1.67;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.67;
             atomicNumber = 7;
             *asf_number = 109;
         } else if (atom_type == "OXT") { // taken from CRYSOL TABLE as O* (deprotonated oxygen)
             tempVolume = 9.13;
-            radii = 1.49;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.49;
             atomicNumber = 8;
             *asf_number = 106;
         }
@@ -2339,22 +2830,26 @@ float PDBModel::residueToVolume(std::string atom_type,
         //tempVolume = 165.083;
         if (atom_type == "N") {
             tempVolume = 13.429;
-            radii = 1.70;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.70;
             atomicNumber = 7;
             *asf_number = 108;
         } else if (atom_type == "C1" || atom_type == "C2" || atom_type == "C3" || atom_type == "C4" || atom_type == "C5" || atom_type == "C6") {
             tempVolume = 13.217;
-            radii = 1.90;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.90;
             atomicNumber = 6;
             *asf_number = 101;
         } else if (atom_type == "O1" || atom_type == "O2" || atom_type == "O3" || atom_type == "O4") {
             tempVolume = 15.818;
-            radii = 1.52;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.52;
             atomicNumber = 8;
             *asf_number = 107;
         } else if (atom_type == "OXT") { // taken from CRYSOL TABLE as O* (deprotonated oxygen)
             tempVolume = 9.13;
-            radii = 1.49;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.49;
             atomicNumber = 8;
             *asf_number = 106;
         }
@@ -2367,107 +2862,129 @@ float PDBModel::residueToVolume(std::string atom_type,
 
         if (ifNitrogen(atom_type) || (tempAtom == "N") || (tempAtom == "N1") || (tempAtom == "N2") || (tempAtom == "N3") || (tempAtom == "N4") || (tempAtom == "N5") || (tempAtom == "N6") || (tempAtom == "N7") || (tempAtom == "N8") || (tempAtom == "N9")  ) {
             tempVolume = 13.429;
-            radii = 1.70;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.70;
             atomicNumber = 7;
             *asf_number = 108;
-        } else if (ifCarbon(atom_type) &&  (tempAtom == "CA" || tempAtom == "C1" || tempAtom == "C2" || tempAtom == "C3" || tempAtom == "C4" || tempAtom == "C5" || tempAtom =="C6")) {
+        } else if (ifCarbon(atom_type) &&
+        (tempAtom == "CA" || tempAtom == "C1" || tempAtom == "C2" || tempAtom == "C3" || tempAtom == "C4" || tempAtom == "C5" || tempAtom =="C6")) { // assuming Csp3-H
             tempVolume = 13.217;
-            radii = 1.9;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.9;
             atomicNumber = 6;
             *asf_number = 100;
         } else if (tempAtom == "C") {
             tempVolume = 8.696;
-            radii = 1.75;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.75;
             atomicNumber = 6;
             *asf_number = 6;
         } else if (ifOxygen(atom_type) || tempAtom == "O" || tempAtom == "O1" || tempAtom == "O2" || tempAtom == "O3" || tempAtom == "O4" || tempAtom == "O5" || tempAtom == "O6" || tempAtom == "OH" || tempAtom == "OE") {
             tempVolume = 15.818;
-            radii = 1.54;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.54;
             atomicNumber = 8;
             *asf_number = 105;
         } else if (tempAtom == "CB") {
             tempVolume = 22.578;
-            radii = 1.91;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.91;
             atomicNumber = 6;
             *asf_number = 101;
         } else if (tempAtom == "CG") {
             tempVolume = 22.847;
-            radii = 1.91;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.91;
             atomicNumber = 6;
             *asf_number = 101;
         } else if (tempAtom == "CD") {
             tempVolume = 23.365;
-            radii = 1.91;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.91;
             atomicNumber = 6;
             *asf_number = 101;
         } else if (tempAtom == "CE" || tempAtom == "CM" || tempAtom == "CT") {
             tempVolume = 23.720;
-            radii = 1.91;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.91;
             atomicNumber = 6;
             *asf_number = 101;
         } else if (ifMethyleneCarbon(atom_type)){
             tempVolume = 22.847;
-            radii = 1.91;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.91;
             atomicNumber = 6;
             *asf_number = 101;
         } else if (tempAtom == "NZ") {
             tempVolume = 21.413;
-            radii = 1.67;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.67;
             atomicNumber = 7;
             *asf_number = 108;
         } else if (tempAtom == "OXT" || tempAtom == "OT") { // taken from CRYSOL TABLE as O* (deprotonated oxygen)
             tempVolume = 9.13;
-            radii = 1.49;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.49;
             atomicNumber = 8;
             *asf_number = 106;
         } else if (tempAtom == "P") {
             tempVolume = 11.853;
-            radii = 2.04;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 2.04;
             atomicNumber = 15;
             *asf_number = 15;
         }  else if (atom_type == "O1P") {
             tempVolume = 16.235;
-            radii = 1.46;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.46;
             atomicNumber = 8;
             *asf_number = 8;
         } else if (atom_type == "O2P") {
             tempVolume = 16.224;
-            radii = 1.46;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.46;
             atomicNumber = 8;
             *asf_number = 8;
         } else if (atom_type == "OP1") {
             tempVolume = 16.235;
-            radii = 1.46;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.46;
             atomicNumber = 8;
             *asf_number = 8;
         } else if (atom_type == "OP2") {
             tempVolume = 16.224;
-            radii = 1.46;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.46;
             atomicNumber = 8;
             *asf_number = 8;
         } else if (atom_type == "O3P") {
             tempVolume = 16.21; // median of first two
-            radii = 1.46;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.46;
             atomicNumber = 8;
             *asf_number = 8;
         } else if (tempAtom == "SD" || tempAtom == "S1" || tempAtom == "S2" || tempAtom == "S3" || tempAtom == "S4" || ifSulfur(tempAtom)) {
             tempVolume = 36.748;
-            radii = 1.88;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.88;
             atomicNumber = 16;
             *asf_number = 16;
         } else if (tempAtom == "FE" || tempAtom == "FE1" || tempAtom == "FE2" || tempAtom == "FE3" || tempAtom == "FE4" || ifIron(tempAtom)) {
             tempVolume = 36.748;
-            radii = 1.88;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.88;
             atomicNumber = 26;
             *asf_number = 26;
         } else if (ifBridgingOxygen(atom_type)){
             tempVolume = 17.386;
-            radii = 1.46;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.46;
             atomicNumber = 8;
             *asf_number = 8;
         } else { // generic
             tempVolume = 16.21;
-            radii = 1.46;
+                    radii = std::cbrt(threeOver4PI * tempVolume);
+            g_radii = std::cbrt(invSqrtPI3*tempVolume); // constant folding? 1.46;
             atomicNumber = 8;
             *asf_number = 8;
         }
@@ -2478,6 +2995,7 @@ float PDBModel::residueToVolume(std::string atom_type,
 
     *vdwradius = radii;
     *atomic_number = atomicNumber;
+    *gradii = g_radii;
     return tempVolume;
 }
 

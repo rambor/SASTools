@@ -39,7 +39,7 @@ class PDBModel : public Model {
     float edge_radius=0.0;
     unsigned int totalResidues, waterCount, watersPerResidue, totalWatersInExcludedVolume, totalHydrogens;
     float volume=0.0f, dmax, fractionalWaterOccupancy, smax, mw=0.0f; // smax is the radius of the sphere than encloses centered object
-    std::vector<float> occupancies, atomVolume, atomicRadii;
+    std::vector<float> occupancies, atomVolume, atomicRadii, atomicGaussianRadii;
     std::vector<int> atomNumbers;
     std::vector<int> atomASFNumbers; // use for atomic scattering form factors for hydrogens
     vector3 centeringVector;
@@ -98,6 +98,7 @@ public:
         occupancies = std::move(model.occupancies);
         atomVolume = std::move(model.atomVolume);
         atomicRadii = std::move(model.atomicRadii);
+        atomicGaussianRadii = std::move(model.atomicGaussianRadii);
         atomNumbers = std::move(model.atomNumbers);
         atomASFNumbers = std::move(model.atomASFNumbers);
 
@@ -169,6 +170,7 @@ public:
     float residueToVolume(std::string atom_type,
                           std::string residue,
                           float * vdwradius,
+                          float * gradii,
                           int * atomic_number,
                           int * asf_number);
 
@@ -236,6 +238,7 @@ public:
     int * getAtomicNumberVec() { return atomNumbers.data();}
     int * getAdjustedASFNumbers() { return atomASFNumbers.data(); }
     float * getAtomicVolumeVec() { return atomVolume.data();}
+    float * getAtomicGaussianRadii() { return atomicGaussianRadii.data(); } // to be used for non-hard sphere models
 
     void writeTranslatedCoordinatesToFile(std::string name, std::vector<vector3> coords);
 
