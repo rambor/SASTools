@@ -68,6 +68,8 @@ MESSAGE("** BOOST INCLUDE DIRECTORY: ${Boost_INCLUDE_DIR}")
 
 
 set(HEADERS ${header_path}/Model.h
+        ${header_path}/Atom.h
+        ${header_path}/Residue.h
         ${header_path}/Bead.h
         ${header_path}/Coords.h
         ${header_path}/Database.h
@@ -83,9 +85,10 @@ set(HEADERS ${header_path}/Model.h
         ${header_path}/ReciprocalSpaceScore.h
         ${header_path}/svd3.h
         ${header_path}/vector3.h
+        ${header_path}/Residues.h
         )
 
-set(SOURCE_FILES PDBModel.cpp FileClass.cpp utils.cpp Coords.cpp IofQData.cpp PofRData.cpp)
+set(SOURCE_FILES PDBModel.cpp FileClass.cpp utils.cpp Coords.cpp IofQData.cpp PofRData.cpp Residues.cpp)
 
 include(include/simde-no-tests-master/CMakeLists.txt)
 

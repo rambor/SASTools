@@ -82,7 +82,7 @@ void IofQData::extractData() {
                 if ((tempLine.size() > 3) && boost::regex_search(tempLine.at(3), dataFormat)){ // assume fourth column is icalc from IFT
                     y_calc.push_back(std::strtof(tempLine[3].c_str(), nullptr));
                 } else {
-                    y_calc.push_back(std::strtof(tempLine[1].c_str(), nullptr)); // use experimental value if no column
+                    y_calc.emplace_back(y_data.back()); // use experimental value if no column
                 }
 
                 total_data_points++;
@@ -168,8 +168,8 @@ void IofQData::makeWorkingSet(int value){
 // makes a working set using the entire set of data
 void IofQData::makeWorkingSet(){
 
-    std::random_device rd;
-    std::mt19937 gen(rd());
+    //std::random_device rd;
+    std::mt19937 gen(std::chrono::high_resolution_clock::now().time_since_epoch().count());
 
     const auto pQ = x_data.data();
 
@@ -190,7 +190,6 @@ void IofQData::makeWorkingSet(){
 
             std::shuffle(channel.second.begin(), channel.second.end(), gen);
             auto select = &points_to_sample_per_shannon_bin[channel.first];
-
             unsigned int totalIn = channel.second.size();
 
             if (*select > totalIn){ // add half - incase too few points in shannon box
@@ -205,10 +204,13 @@ void IofQData::makeWorkingSet(){
 
             } else {
                 // find points before and after channel
+                // n*PI/dmax
                 float shannon_channel = (float)channel.first * factor;
 
                 keepers.clear();
-                unsigned int halfway = *select/2;
+                unsigned int halfway = *select/2; // points to select
+
+                halfway = ( halfway % 2 == 0) ? halfway : halfway + 1;
 
                 unsigned int counter = 0;
                 for(auto & val : channel.second) {
@@ -256,13 +258,14 @@ void IofQData::makeWorkingSet(){
         workingSetSmoothed.clear();
     }
 
-    for(auto & value : selectedIndices){
-        float * qval = &x_data[value];
-        float * sig = &sigma_data[value];
+    for(auto & ind : selectedIndices){
+//        std::cout << "selected indices " << ind << " " << std::endl;
+        float * qval = &x_data[ind];
+        float * sig = &sigma_data[ind];
+        workingSet.emplace_back(Datum(*qval, y_data[ind], *sig, ind));
 
-        workingSet.emplace_back(Datum(*qval, y_data[value], *sig, value));
         // workingSetSmoothed uses value from IFT
-        workingSetSmoothed.emplace_back(Datum(*qval, y_calc[value], *sig, value));
+        workingSetSmoothed.emplace_back(Datum(*qval, y_calc[ind], *sig, ind));
     }
 
     workingSetSize = (unsigned int)workingSet.size();
@@ -297,11 +300,10 @@ void IofQData::partitionIndices(unsigned int ns, float deltaQ) {
 
         collated_indices.insert(std::make_pair(n, std::vector<unsigned int>()));
         //collated_indices[n] = std::vector<unsigned int>();
-        std::vector<unsigned int> & indices = collated_indices[n];
+        auto & indices = collated_indices[n];
 
         //collect the indices that are specific to the Shannon Channel
         for(unsigned int i=startIndex; i < total_data_points; i++){
-
             // get points closest to Shannon number
             float * val = &pQ[i];
             if (*val > startq && *val <= endQ){
@@ -313,6 +315,7 @@ void IofQData::partitionIndices(unsigned int ns, float deltaQ) {
                 break;
             }
         }
+
     }
 
 //    int sum = 0;

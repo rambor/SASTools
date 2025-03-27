@@ -4,7 +4,8 @@
 
 #ifndef PDBTOOLS_MAIN_H
 #define PDBTOOLS_MAIN_H
-#include "gtest/gtest.h"
+//#include "gtest/gtest.h"
+#include "../lib/google-tests/googletest/include/gtest/gtest.h"
 
 int main(int argc, char **argv)
 {

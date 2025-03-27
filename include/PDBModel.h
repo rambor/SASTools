@@ -25,7 +25,6 @@
 #include "utils.h"
 
 class PDBModel : public Model {
-
     bool discardWaters=false, ifRNA = false;
     //FileClass coordinate_file;
     std::vector < std::string > atomType, resi, trimmedAtomType, trimmedResi, chainID, waterLines;
@@ -167,13 +166,6 @@ public:
 
     std::string getFileExtension() override {return base_file.getFileExtension();}
 
-    float residueToVolume(std::string atom_type,
-                          std::string residue,
-                          float * vdwradius,
-                          float * gradii,
-                          int * atomic_number,
-                          int * asf_number);
-
     void extractCoordinates() override;
 
     unsigned int getTotalCoordinates() override { return totalAtoms;}
@@ -265,51 +257,6 @@ public:
         }
     }
 
-    // "C1D" return true, "NC" return false
-    bool ifCarbon(std::string val){
-
-        boost::regex isCarbon("^[\\s1-9]?C['A-Z0-9]{0,3}"); // CA could be C alpha or Calcium
-
-        boost::regex notCalcium("CA "); // "CA ", in PDB calcium is " CA"
-
-        boost::regex notCarbon("^(?![A-BD-Z])C");
-
-        // boost::regex ifHydrogen("^[ ]?H['A-GI-Z0-9]['A-GI-Z0-9]?"); // match any character
-        return  (boost::regex_match(val, isCarbon)) && !boost::regex_match(val, notCarbon) && !boost::regex_match(val, notCalcium);
-
-    }
-
-    bool ifMethyleneCarbon(std::string val){
-        boost::regex ifCarbon("^[0-9]+?C['A-Z0-9]?+");
-        // boost::regex ifHydrogen("^[ ]?H['A-GI-Z0-9]['A-GI-Z0-9]?"); // match any character
-        return  (boost::regex_match(val, ifCarbon));
-    }
-
-    bool ifNitrogen(std::string val){
-        boost::regex ifAtom("^[ ]?N['A-Z0-9]?+");
-        return  (boost::regex_search(val, ifAtom));
-    }
-
-    bool ifOxygen(std::string val){
-        boost::regex ifAtom("^[ ]?O['A-Z0-9]?+");
-        return  (boost::regex_search(val, ifAtom));
-    }
-
-
-    bool ifSulfur(std::string val){
-        boost::regex ifAtom("^[ ]?S[0-9]?+");
-        return  (boost::regex_search(val, ifAtom));
-    }
-
-    bool ifIron(std::string val){
-        boost::regex ifAtom("^[ ]?FE[0-9]?+");
-        return  (boost::regex_search(val, ifAtom));
-    }
-
-    bool ifBridgingOxygen(std::string val){
-        boost::regex ifAtom("^[ 0-9]+?O['0-9]?");
-        return  (boost::regex_search(val, ifAtom));
-    }
 
     float getVolume(){ return volume;}
 

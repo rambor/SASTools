@@ -95,25 +95,6 @@ TEST(UtilsTest, validateMasses){
     ASSERT_NEAR(getAtomicMass(99), 18.01528, 0.00001);
 }
 
-TEST(UtilsTest, validateNonProteinRNAResidueAtomsCarbon){
-
-    double value = residueToVolume("1C2", "BDD");
-
-    EXPECT_EQ(23.365, value) << "1C2 from BDD not recognized";
-
-    value = residueToVolume("21C2", "BDD");
-
-    EXPECT_EQ(23.365, value) << "21C2 from BDD not recognized";
-}
-
-
-TEST(UtilsTest, validateNonProteinRNAResidueAtomsOxygen){
-
-    double value = residueToVolume("1O2", "BDD");
-    EXPECT_EQ(17.386, value);
-
-}
-
 
 TEST(UtilsTest, testConversionOfOxygenToAtomicNumberFromRNA){
 

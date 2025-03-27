@@ -40,6 +40,7 @@ addToIt(PofRData)
 addToIt(IofQData)
 addToIt(Bead)
 addToIt(vector3)
+addToIt(Residue)
 
 MESSAGE("** FILES => ${CPP_FILES}")
 set(TEST_OBJ ${CMAKE_PROJECT_NAME}_test)

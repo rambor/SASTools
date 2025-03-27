@@ -32,14 +32,6 @@
 #include <sstream>
 #include "vector3.h"
 
-typedef std::vector<float> vector1D;
-typedef std::vector<vector1D> vector2D;
-typedef std::vector<vector2D> vector3D;
-
-typedef std::vector< std::complex<float> > vector1DC;
-typedef std::vector< vector1DC> vector2DC;
-typedef std::vector< vector2DC> vector3DC;
-
 struct DminType {
     float dmin_supremum;
     float dmin_infimum;
@@ -68,8 +60,6 @@ void dmaxFromPDB(std::vector <float>& x,
 );
 
 std::string newFilename(std::string currentFile, int loop, std::string extension);
-
-double residueToVolume(std::string atomType, std::string residue);
 
 void sub_select(std::vector <float> & qvalue, std::vector<std::vector <float> > & iobs, float subset_fraction, int * qvaluesSize, int lmax,  float qmin, float qmax);
 

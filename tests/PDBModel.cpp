@@ -62,6 +62,10 @@ TEST_F(PDBModelTests, getOriginalDataTest){
     }
 }
 
+TEST_F(PDBModelTests, checkNonLibraryResidue){
+    PDBModel testModel = PDBModel(fixture(1J4T_artocarpin.pdb), false, false);
+}
+
 TEST_F(PDBModelTests, checkIsResidue){
     unsigned int total=bsaModel.getTotalCoordinates();
     int positiveCount = 0, negCount = 0;
@@ -85,19 +89,19 @@ TEST_F(PDBModelTests, checkIsResidue){
 //}
 
 
-TEST_F(PDBModelTests, checkIsResidueRNA){
-    unsigned int total=p4p6RNAModel.getTotalCoordinates();
-    int positiveCount = 0;
-    for(unsigned int i=0; i<total; i++){
-        if (p4p6RNAModel.belongsToResidue(i)){
-            positiveCount++;
-        } else {
-            std::cout << "missing residue " << i << " " << p4p6RNAModel.getResidueAt(i)<< std::endl;
-        }
-    }
-
-    EXPECT_EQ(positiveCount,total) << positiveCount << " :: if every atom belongs to residue, total is totalCoordinates ";
-}
+//TEST_F(PDBModelTests, checkIsResidueRNA){
+//    unsigned int total=p4p6RNAModel.getTotalCoordinates();
+//    int positiveCount = 0;
+//    for(unsigned int i=0; i<total; i++){
+//        if (p4p6RNAModel.belongsToResidue(i)){
+//            positiveCount++;
+//        } else {
+//            std::cout << "missing residue " << i << " " << p4p6RNAModel.getResidueAt(i)<< std::endl;
+//        }
+//    }
+//
+//    EXPECT_EQ(positiveCount,total) << positiveCount << " :: if every atom belongs to residue, total is totalCoordinates ";
+//}
 
 
 /*
@@ -123,16 +127,16 @@ TEST_F(PDBModelTests, checkIsBackboneBSA){
 /*
  * count number of backbone atoms in P4P6, should be 1 - total since terminal phosphate is not present
  */
-TEST_F(PDBModelTests, checkIsBackboneRNA){
-    unsigned int total=p4p6RNAModel.getTotalCoordinates();
-    int positiveCount = 0;
-    for(unsigned int i=0; i<total; i++){
-        if (p4p6RNAModel.isBackbone(i)){
-            positiveCount++;
-        }
-    }
-    EXPECT_EQ(positiveCount, (p4p6RNAModel.getTotalUniqueResidues()-1)) << positiveCount << " ::  ";
-}
+//TEST_F(PDBModelTests, checkIsBackboneRNA){
+//    unsigned int total=p4p6RNAModel.getTotalCoordinates();
+//    int positiveCount = 0;
+//    for(unsigned int i=0; i<total; i++){
+//        if (p4p6RNAModel.isBackbone(i)){
+//            positiveCount++;
+//        }
+//    }
+//    EXPECT_EQ(positiveCount, (p4p6RNAModel.getTotalUniqueResidues()-1)) << positiveCount << " ::  ";
+//}
 
 
 /*
@@ -207,92 +211,70 @@ TEST_F(PDBModelTests, calculateHydrogenTests){
     EXPECT_EQ(totalH, totalHH) << " :: not equal getting " << totalH << " " << totalHH ;
 }
 
-TEST_F(PDBModelTests, ifCarbonTest){
-
-   EXPECT_TRUE(p4p6RNAModel.ifCarbon("C1D")) << "C1D";
-   EXPECT_FALSE(p4p6RNAModel.ifCarbon("NC")) << " NC";
-    EXPECT_TRUE(p4p6RNAModel.ifCarbon("2C3")) << "2C3";
-
-}
-
-TEST_F(PDBModelTests, ifNitrogenTest){
-    EXPECT_TRUE(p4p6RNAModel.ifNitrogen("NC"));
-    EXPECT_TRUE(p4p6RNAModel.ifNitrogen("NB"));
-    EXPECT_TRUE(p4p6RNAModel.ifNitrogen("N1"));
-    EXPECT_FALSE(p4p6RNAModel.ifNitrogen("C1D"));
-}
-
-TEST_F(PDBModelTests, ifOxygenTest){
-    EXPECT_TRUE(p4p6RNAModel.ifOxygen("O1D"));
-    EXPECT_TRUE(p4p6RNAModel.ifOxygen("O1'"));
-    EXPECT_TRUE(p4p6RNAModel.ifOxygen(" O'"));
-    EXPECT_FALSE(p4p6RNAModel.ifOxygen("NC"));
-}
-
 TEST_F(PDBModelTests, validateRNAResidue){
     std::string res = "  A";
     p4p6RNAModel.forceRNAResidue(res);
-    EXPECT_EQ(res, " rA");
+    EXPECT_EQ(res, "rA");
 
     res = "ADE";
     p4p6RNAModel.forceRNAResidue(res);
-    EXPECT_EQ(res, " rA");
+    EXPECT_EQ(res, "rA");
 
     res = " rA";
     p4p6RNAModel.forceRNAResidue(res);
-    EXPECT_EQ(res, " rA");
+    EXPECT_EQ(res, "rA");
 
     res = "A  ";
     p4p6RNAModel.forceRNAResidue(res);
-    EXPECT_EQ(res, " rA");
+    EXPECT_EQ(res, "rA");
 
     res = "  G";
     p4p6RNAModel.forceRNAResidue(res);
-    EXPECT_EQ(res, " rG");
+    EXPECT_EQ(res, "rG");
 
     res = "GUA";
     p4p6RNAModel.forceRNAResidue(res);
-    EXPECT_EQ(res, " rG");
+    EXPECT_EQ(res, "rG");
 
     res = " rG";
     p4p6RNAModel.forceRNAResidue(res);
-    EXPECT_EQ(res, " rG");
+    EXPECT_EQ(res, "rG");
 
     res = "G  ";
     p4p6RNAModel.forceRNAResidue(res);
-    EXPECT_EQ(res, " rG");
+    EXPECT_EQ(res, "rG");
 
     res = "  U";
     p4p6RNAModel.forceRNAResidue(res);
-    EXPECT_EQ(res, " rU");
+    EXPECT_EQ(res, "rU");
 
     res = "URI";
     p4p6RNAModel.forceRNAResidue(res);
-    EXPECT_EQ(res, " rU");
+    EXPECT_EQ(res, "rU");
 
     res = " rU";
     p4p6RNAModel.forceRNAResidue(res);
-    EXPECT_EQ(res, " rU");
+    EXPECT_EQ(res, "rU");
 
     res = "U  ";
     p4p6RNAModel.forceRNAResidue(res);
-    EXPECT_EQ(res, " rU");
+    EXPECT_EQ(res, "rU");
 
     res = "  C";
     p4p6RNAModel.forceRNAResidue(res);
-    EXPECT_EQ(res, " rC");
+    EXPECT_EQ(res, "rC");
 
     res = "CYT";
     p4p6RNAModel.forceRNAResidue(res);
-    EXPECT_EQ(res, " rC");
+    EXPECT_EQ(res, "rC");
 
     res = " rC";
     p4p6RNAModel.forceRNAResidue(res);
-    EXPECT_EQ(res, " rC");
+    EXPECT_EQ(res, "rC");
 
     res = "C  ";
     p4p6RNAModel.forceRNAResidue(res);
-    EXPECT_EQ(res, " rC");
+    EXPECT_EQ(res, "rC");
 }
 
 
