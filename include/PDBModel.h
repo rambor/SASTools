@@ -41,7 +41,7 @@ class PDBModel : public Model {
     std::vector<float> occupancies, atomVolume, atomicRadii, atomicGaussianRadii;
     std::vector<int> atomNumbers;
     std::vector<int> atomASFNumbers; // use for atomic scattering form factors for hydrogens
-    vector3 centeringVector;
+    vector3 centeringVector, low_vec, high_vec;
 
 public:
     PDBModel()=default;
@@ -101,7 +101,9 @@ public:
         atomNumbers = std::move(model.atomNumbers);
         atomASFNumbers = std::move(model.atomASFNumbers);
 
-        centeringVector = std::move(model.centeringVector);
+        centeringVector = model.centeringVector;
+        low_vec = model.low_vec;
+        high_vec = model.high_vec;
 
         base_file = model.base_file;
 
@@ -264,6 +266,8 @@ public:
 
     void updateAtomDescriptions(std::string filename);
 
+    vector3 getLowerBoundVector(){ return low_vec;}
+    vector3 getUpperBoundVector(){ return high_vec;}
 };
 
 

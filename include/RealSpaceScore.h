@@ -45,43 +45,53 @@ public:
 //        pWorkingProbPerBin = toCopy.pWorkingProbPerBin;
 //    }
 
-    ~RealSpaceScore() = default;
+    ~RealSpaceScore() override = default;
 
-    virtual double operator() (std::vector<unsigned int> & modelPR) {
+     double operator() (std::vector<unsigned int> & modelPR) override {
+
+        double kl=0.0, prob;
+        //unsigned int emptyBins = 0;
+
+//        std::vector<double> modelPR_float(modelPR.begin(), modelPR.end());
 
         double totalCounts = 0.0;
-        double kl=0.0;
-        unsigned int emptyBins = 0;
-        double prob, *value;
+         for (auto pr : modelPR) totalCounts += pr;
+         if (totalCounts <= 0) return INFINITY;          // empty model histogram
 
-        std::vector<double> modelPR_float(modelPR.begin(), modelPR.end());
-
-        for (auto & pr : modelPR_float) {
-            totalCounts += pr;
-        }
-        //double invTotal = 1.0/totalCounts;
-        for (unsigned int i=0; i < zeroBin; i++){
-            // i know every value in working_probability up to zeroBin is nonzero
-            value = &modelPR_float[i];
-            if (*value > 0) {
-                prob = (double)pWorkingProbPerBin[i];  // bounded by experimental Shannon Number
-                kl += prob * std::log(prob / (*value) * totalCounts);
-            } else if (*value == 0 ){ // if any bins are zero before dmax bin
-//                    kl += 1.10/invBin; // must penalize empty bins
-                emptyBins += 1;
-            }
-        }
-
+        //
+        // for (unsigned int i=0; i < zeroBin; i++){
+        //     // i know every value in working_probability up to zeroBin is nonzero
+        //     value = &modelPR_float[i];
+        //     if (*value > 0) {
+        //         prob = (double)pWorkingProbPerBin[i];  // bounded by experimental Shannon Number
+        //         kl += prob * std::log(prob / (*value) * totalCounts);
+        //     } else if (*value == 0 ){ // if any bins are zero before dmax bin
+        //         emptyBins += 1;
+        //     }
+        // }
         // zeroBin should have at least one value
+        // double penalty = 0.0;
+        // if (emptyBins == 1){
+        //     penalty = 1.1;
+        // } else if (emptyBins > 1){
+        //     penalty = std::pow(10,emptyBins);
+        // }
 
-        double penalty = 0.0;
-        if (emptyBins == 1){
-            penalty = 1.1;
-        } else if (emptyBins > 1){
-            penalty = std::pow(10,emptyBins);
-        }
+        // squared differences
+         const double inv = 1.0/totalCounts;
 
-        return kl*invBin + penalty;
+         // for (unsigned int i=0; i < zeroBin; i++){
+         //     prob = (modelPR_float[i]*inv - pWorkingProbPerBin[i]);
+         //     kl += prob*prob;
+         // }
+         const unsigned int nm = (unsigned int)modelPR.size();
+         for (unsigned int i=0; i < zeroBin; i++){
+             double model = i < nm ? modelPR[i]*inv : 0.0;
+             prob = (model - pWorkingProbPerBin[i]);
+             kl += prob*prob;
+         }
+
+        return kl*invBin;// + penalty;
     }
 };
 #endif //SASTOOLS_REALSPACESCORE_H

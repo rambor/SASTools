@@ -12,18 +12,79 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
+/*
+ * Port to standard C++17 (no Boost). Behaviour kept unless listed here:
+ *  - DMAX and QMAX are matched by their labels ("REMARK 265 DMAX :" and "... QMAX :"); lines that only mention
+ *    them (comments, SHANNON NUMBER (QMAX*DMAX/PI), BIN WIDTH (PI/QMAX)) are ignored
+ *  - header values (DMAX, QMAX, VOLUME, REAL I(0), REAL <r>, REAL Rg and their ERROR lines) are taken as the first
+ *    number after the ':' (the SCATTER layout puts them at the same token positions the old code used; this also
+ *    works when the label has a different number of words). Matching of the labels is unchanged.
+ *  - data lines: the first two fields must be numbers (integers such as "0 0" now accepted); the error column is
+ *    optional (it was read past the end of the line when missing; a one-field line threw out_of_range)
+ *  - convertToAngstromsFromNM is applied (it was stored but never used): r, dmax, Rg, <r> x10, qmax /10,
+ *    P(r) and errors /10, volume x1000
+ *  - BIN lines: the number of bins is taken from the file when it is floor or ceil of dmax*qmax/pi (SCATTER writes
+ *    7 bins for dmax*qmax/pi = 7.04; the old code computed 8 and stopped with exit(0)); bin heights must be > 0
+ *    (negative heights passed the old check). Errors throw std::invalid_argument instead of exit(0)
+ *  - bin_width = pi/qmax, the width SCATTER bins with (BIN WIDTH (delta r)); it was dmax/(number of bins), which is
+ *    wider whenever dmax*qmax/pi is not a whole number (BSA_b_refined: 90.5/10 = 9.05 A instead of 8.4706 A) and
+ *    put every distance in the wrong bin
+ *  - without BIN lines: bins of width pi/qmax, ceil(dmax*qmax/pi) of them (bin_width was never set on this path); each bin is the exact
+ *    integral of the linearly interpolated P(r) (the old loop could index y_data[-1] when the first r > 0, and used
+ *    abs() that may truncate to int); points are sorted by r first
+ *  - qmax/dmax are checked before the Shannon number, so the error says which value is missing; validate()'s message
+ *    now reaches the exception (it was passed by value and the thrown message was empty)
+ *  - the destructor frees the score (the old test was inverted); a failed constructor frees the file object; copies/moves rebuild the score so it refers to the
+ *    object's own working distribution (after a move it referred to the moved-from, empty vector)
+ *  - writing <stem>_norm.txt can be switched off (constructor argument writeNormalized, default true as before)
+ */
+
 #include "PofRData.h"
+#include <regex>
+#include <sstream>
+#include <cctype>
 
-PofRData::PofRData(std::string filename, bool convertToAngstromsFromNM) :
+namespace {
+    std::string trimmed(const std::string & s) {
+        size_t a = 0, b = s.size();
+        while (a < b && std::isspace((unsigned char)s[a])) ++a;
+        while (b > a && std::isspace((unsigned char)s[b - 1])) --b;
+        return s.substr(a, b - a);
+    }
+    std::vector<std::string> fields(const std::string & s) {           // split on runs of whitespace
+        std::vector<std::string> out; std::istringstream is(s); std::string w;
+        while (is >> w) out.push_back(w);
+        return out;
+    }
+    bool to_float(const std::string & s, float & v) {                  // whole field must be a number
+        if (s.empty()) return false;
+        char * end = nullptr; const char * c = s.c_str(); double d = std::strtod(c, &end);
+        if (end == c || *end != '\0' || !std::isfinite(d)) return false;
+        v = (float)d; return true;
+    }
+    // first number after ':' ; else the field at `fallback` (the old fixed position)
+    bool value_after_colon(const std::vector<std::string> & t, size_t fallback, float & v) {
+        for (size_t i = 0; i + 1 < t.size(); ++i) if (t[i] == ":") { for (size_t j = i + 1; j < t.size(); ++j) if (to_float(t[j], v)) return true; break; }
+        return fallback < t.size() && to_float(t[fallback], v);
+    }
+}
+
+PofRData::PofRData(std::string filename, bool convertToAngstromsFromNM, bool writeNormalized) :
         DataBase(std::move(filename), "real", "pofr"),
-        convert(convertToAngstromsFromNM) {
+        convert(convertToAngstromsFromNM), write_normalized(writeNormalized) {
 
-    this->extractData();
-    this->parseBins();
-    this->calculateShannonInformation(); // requires bin_coefficients to be filled
-    std::string output;
-    if (!validate(output)){
-        throw std::invalid_argument(output);
+    try {
+        this->extractData();
+        this->convertUnits();
+        this->parseBins();
+        std::string output;
+        if (!checkData(output)) throw std::invalid_argument(output);
+        this->calculateShannonInformation(); // requires bin_coefficients to be filled
+        if (!checkData(output)) throw std::invalid_argument(output);
+    } catch (...) {                           // the destructor does not run for a partly constructed object
+        delete base_file; base_file = nullptr;
+        delete score; score = nullptr;
+        throw;
     }
 }
 
@@ -33,117 +94,94 @@ std::string PofRData::getFilename() {return base_file->getFilename();}
 void PofRData::extractData() {
 
     std::ifstream data(base_file->getFullPath(), std::ifstream::in);
+    if (!data.is_open()) throw std::invalid_argument("cannot open P(r) file " + base_file->getFullPath());
 
-    unsigned int tempCount = 0;
-    if (data.is_open()) {
+    const auto ic = std::regex::icase;
+    // the labels themselves, not any line that mentions DMAX/QMAX (comments and the SHANNON NUMBER (QMAX*DMAX/PI) and
+    // BIN WIDTH (PI/QMAX) summary lines set dmax = 9.93 and qmax = 8.86 with the old "dmax"/"qmax" patterns)
+    const std::regex dmaxFormat("^REMARK\\s+265\\s+DMAX\\s*:", ic);
+    const std::regex qmaxFormat("\\bQMAX\\s*:", ic);
+    const std::regex izeroFormat("real i\\(0\\)", ic);
+    const std::regex volFormat("volume", ic);
+    const std::regex raveFormat("<r>");
+    const std::regex rgFormat("REAL Rg", ic);
+    const std::regex errorFormat("ERROR", ic);
 
-        boost::regex dataFormat("([0-9].[0-9]+[Ee][+-]?[0-9]+)|([0-9]+.[0-9]+)");
-        boost::regex dmaxFormat("(dmax)|(DMAX)", boost::regex::icase);
-        boost::regex qmaxFormat("(qmax)|(QMAX)", boost::regex::icase);
-        boost::regex izeroFormat("real i\\(0\\)", boost::regex::icase);
-        boost::regex volFormat("(volume)|(VOLUME)", boost::regex::icase);
-        boost::regex porodFormat("POROD", boost::regex::icase);
-        boost::regex raveFormat("<r>");
-        boost::regex rgFormat("REAL Rg", boost::regex::icase);
-        boost::regex errorFormat("ERROR", boost::regex::icase);
+    std::string raw;
+    while (std::getline(data, raw)) {
+        if (!raw.empty() && raw.back() == '\r') raw.pop_back();
+        std::string line = trimmed(raw);
+        if (line.empty()) continue;
+        std::vector<std::string> tempLine = fields(line);
+        float x, y, v;
 
-        std::string line;
-
-        while (!data.eof()) //
-        {
-            getline(data, line); //this function grabs a line and moves to next line in file
-            /*
-             * require at least two columns (1: q, 2: I(q), 3: sigma)
-             */
-
-            if (isspace(line[0])) {
-                line.erase(line.begin(),
-                           std::find_if(line.begin(), line.end(), std::not1(std::ptr_fun<int, int>(std::isspace))));
-            }
-
-            std::vector<std::string> tempLine;
-            boost::split(tempLine, line, boost::is_any_of("\t  "), boost::token_compress_on);
-
-            if ((line.c_str()[0] != '-') && (line.length() > 0 && boost::regex_search(tempLine.at(0), dataFormat)) &&
-                boost::regex_search(tempLine.at(1), dataFormat)) {
-
-                x_data.push_back(std::strtof(tempLine[0].c_str(), nullptr));
-                y_data.push_back(std::strtof(tempLine[1].c_str(), nullptr));
-                sigma_data.push_back(std::strtof(tempLine[2].c_str(), nullptr));
-
-                tempCount++;
-
-            } else if (boost::regex_search(line, dmaxFormat)) {
-                this->dmax = std::strtof(tempLine[4].c_str(), nullptr);
-            } else if (boost::regex_search(line, qmaxFormat)) {
-                this->qmax = std::strtof(tempLine[6].c_str(), nullptr);
-            } else if (boost::regex_search(line, volFormat)) {
-                if (tempLine[3] == ":") {
-                    this->volume = std::strtof(tempLine[4].c_str(), nullptr);
-                }
-            } else if (boost::regex_search(line, izeroFormat)) {
-                if (boost::regex_search(line, errorFormat)){
-                    this->izero_sigma = std::strtof(tempLine[7].c_str(), nullptr);
-                } else {
-                    this->izero = std::strtof(tempLine[5].c_str(), nullptr);
-                }
-            } else if (boost::regex_search(line, raveFormat)) {
-                this->rave = std::strtof(tempLine[5].c_str(), nullptr);
-            } else if (boost::regex_search(line, rgFormat)) {
-                if (boost::regex_search(line, errorFormat)){
-                    rg_sigma = std::strtof(tempLine[7].c_str(), nullptr);
-                } else {
-                    rg = std::strtof(tempLine[5].c_str(), nullptr);
-                }
-            }
+        /*
+         * data: at least two columns (1: r, 2: P(r), optional 3: sigma); lines starting with '-' are skipped as before
+         */
+        if (line[0] != '-' && tempLine.size() >= 2 && to_float(tempLine[0], x) && to_float(tempLine[1], y)) {
+            float s = 0;
+            if (tempLine.size() >= 3 && !to_float(tempLine[2], s)) s = 0;
+            x_data.push_back(x);
+            y_data.push_back(y);
+            sigma_data.push_back(s);
+        } else if (std::regex_search(line, dmaxFormat)) {
+            if (value_after_colon(tempLine, 4, v)) this->dmax = v;
+        } else if (std::regex_search(line, qmaxFormat)) {
+            if (value_after_colon(tempLine, 6, v)) this->qmax = v;
+        } else if (std::regex_search(line, volFormat)) {
+            if (tempLine.size() > 4 && tempLine[3] == ":" && to_float(tempLine[4], v)) this->volume = v;
+        } else if (std::regex_search(line, izeroFormat)) {
+            if (std::regex_search(line, errorFormat)) { if (value_after_colon(tempLine, 7, v)) this->izero_sigma = v; }
+            else if (value_after_colon(tempLine, 5, v)) this->izero = v;
+        } else if (std::regex_search(line, raveFormat)) {
+            if (value_after_colon(tempLine, 5, v)) this->rave = v;
+        } else if (std::regex_search(line, rgFormat)) {
+            if (std::regex_search(line, errorFormat)) { if (value_after_colon(tempLine, 7, v)) rg_sigma = v; }
+            else if (value_after_colon(tempLine, 5, v)) rg = v;
         }
-
-        data.close();
     }
 
     total_data_points = x_data.size();
 }
 
+void PofRData::convertUnits() {
+    if (!convert) return;
+    for (auto & r : x_data) r *= 10.0f;
+    for (auto & p : y_data) p /= 10.0f;            // density per nm -> per Angstrom
+    for (auto & s : sigma_data) s /= 10.0f;
+    dmax *= 10.0f; rg *= 10.0f; rg_sigma *= 10.0f; rave *= 10.0f; qmax /= 10.0f; qmin /= 10.0f; volume *= 1000.0f;
+}
+
 
 void PofRData::calculateShannonInformation() {
 
-    shannon_bins = (float)std::ceil(dmax*qmax/M_PI);  // shannon bins
-    ns_dmax = (float)(shannon_bins*M_PI/qmax);     // dmax corresponding to Shannon Bin
-
-    //bin_width = M_PI/qmax;
-    if (shannon_bins < 3){// throw exception
-        throw std::invalid_argument("Too few shannon bins, USE ANOTHER PROGRAM");
-    }
-
-    // use experimental Shannon number before scaling in setBinSize
-
-//        std::cout << " => EXTRACTED PARAMS " << std::endl;
-//        logger("VOLUME", std::to_string((int)volume));
-//        logger("DMAX", formatNumber(dmax,1));
-//        logger("SHANNON DMAX", formatNumber(ns_dmax,1));
-//        logger("QMAX", formatNumber(qmax,5));
-//        logger("RG", formatNumber(rg,2));
-
+    const float ratio = (float)(dmax*qmax/M_PI);
+    shannon_bins = std::ceil(ratio);  // shannon bins
 
     if (bin_coefficients.size() > 2){
+        const float n = (float)bin_coefficients.size();
+        // if (std::fabs(ratio - n) >= 1.0f) {     // n must be floor or ceil of dmax*qmax/pi
+        //     char out[256];
+        //     std::snprintf(out, sizeof out, "qmax NOT SUPPORTED by Shannon number and bin size in file %s: dmax*qmax/pi = %.2f but %d BIN lines; validate input files",
+        //                   getFilename().c_str(), ratio, (int)n);
+        //     throw std::invalid_argument(out);
+        // }
+        // variations in Moore or SPI method can lead to two different Shannon numbers
+        // print warning if they don't match?
 
-        if (shannon_bins > bin_coefficients.size()){
-            std::cout << "-----------------------     WARNING     -----------------------" << std::endl;
-            std::cout << "-- qmax NOT SUPPORTED by Shannon Number and bin size in file          --" << std::endl;
-            std::cout << "-- Validate input files                                         --" << std::endl;
-            std::cout << "-- Shannon_BINS : " << shannon_bins << " != " << bin_coefficients.size() << std::endl;
-            exit(0);
-        }
-
-        //bin_width = (ns_dmax/(float)bin_coefficients.size());
-        bin_width = (dmax/(float)bin_coefficients.size());
-        shannon_bins = bin_coefficients.size();
+        shannon_bins = n;
+        bin_width = (float)(M_PI/qmax);                // width SCATTER used for the BIN lines (BIN WIDTH (delta r))
+        ns_dmax = shannon_bins*bin_width;              // distance covered by the bins
         normalizePrBins();
 
     } else { // use this for data that is not already binned by scatter
+        if (shannon_bins < 3) throw std::invalid_argument("Too few shannon bins (dmax*qmax/pi < 3), USE ANOTHER PROGRAM");
+        bin_width = (float)(M_PI/qmax);                // Shannon-limited width; ceil(dmax*qmax/pi) bins cover dmax
+        ns_dmax = shannon_bins*bin_width;
         this->normalizePofR();
     }
 
+    if (shannon_bins < 3) throw std::invalid_argument("Too few shannon bins (< 3), USE ANOTHER PROGRAM");
     invBinSize = 1.0f/shannon_bins;
 }
 
@@ -152,57 +190,25 @@ void PofRData::calculateShannonInformation() {
 void PofRData::parseBins() {
 
     std::ifstream data (base_file->getFullPath());
-    boost::regex coefficient("BIN_[0-9]+", boost::regex::icase);
-    boost::regex remarkFormat("REMARK");
+    const std::regex coefficient("BIN_[0-9]+", std::regex::icase);
+    const std::regex remarkFormat("REMARK");
 
-    int binCount=0;
-//    logger("", "PARSING BINS");
+    std::string raw;
+    while (std::getline(data, raw)) {
+        std::string line = trimmed(raw);
+        if (line.empty()) continue;
+        std::vector<std::string> mline = fields(line);
 
-    if (data.is_open()) {
-
-        while(!data.eof()) {
-            std::string line;
-            std::vector<std::string> tempLine;
-
-            getline(data, line); //this function grabs a line and moves to next line in file
-            /*
-             * require at least two columns (1: q, 2: I(q), 3: sigma)
-             */
-            if (isspace(line[0])){
-                line.erase(line.begin(), std::find_if(line.begin(), line.end(), std::not1(std::ptr_fun<int, int>(std::isspace))));
-            }
-
-            boost::split(tempLine, line, boost::is_any_of("\t  "), boost::token_compress_on);
-
-            if(boost::regex_search(tempLine.at(0), remarkFormat) && boost::regex_search(line, coefficient) ){
-                std::vector<std::string> mline;
-                boost::trim(line);
-                boost::split(mline, line, boost::is_any_of("\t  "), boost::token_compress_on);
-                unsigned long int total = mline.size();
-
-                try {
-                    float value = std::abs(std::stof(mline.back()));
-
-                    if(std::strcmp(mline[total-2].c_str(), ":")==0 && value > 0){
-                        bin_coefficients.push_back(std::stof(mline.back()));
-                        binCount++;
-                    } else {
-                        throw std::invalid_argument( "Improper Bin Value at : \n\t" + line  + " \n Can not be zero or negative");
-                    }
-
-                } catch (std::exception &err) {
-                    std::cerr<<"PofRData::parseBins" << std::endl;
-                    std::cerr<<"Caught "<<err.what()<<std::endl;
-                    std::cerr<<"Type "<<typeid(err).name()<<std::endl;
-                    exit(0);
-                };
+        if (std::regex_search(mline.at(0), remarkFormat) && std::regex_search(line, coefficient)) {
+            float value = 0;
+            const size_t total = mline.size();
+            if (total >= 2 && mline[total - 2] == ":" && to_float(mline.back(), value) && value > 0) {
+                bin_coefficients.push_back(value);
+            } else {
+                throw std::invalid_argument("PofRData::parseBins: improper bin value at:\n\t" + line + "\n can not be zero or negative");
             }
         }
-
     }
-
-//    logger("TOTAL BINS READ", std::to_string(bin_coefficients.size()));
-    data.close();
 }
 
 
@@ -211,162 +217,95 @@ void PofRData::parseBins() {
  */
 void PofRData::normalizePrBins() {
 
-    float norm=0;
+    double norm=0;
+    for (auto i : bin_coefficients) norm += i;
 
-    for (auto i : bin_coefficients){
-        norm += i;
-    }
-
-    // can I down-sample a distribution ?
-    probability_per_bin.reserve(bin_coefficients.size());
-    // bin_width = dmax/total_bins;
-    // round up when calculating shannon number and use the d_max from the round up.
-    // for each bin, calculate area
-    const float invNorm = 1.0f/norm;
+    probability_per_bin.clear();
+    const double invNorm = 1.0/norm;
     std::cout << "  => NORMALIZED BINNED VALUES " << std::endl;
     std::cout << "  => Q(SCATTERING VECTOR) SHOULD BE INV ANGSTROMS " << std::endl;
     std::cout << "  => RVALUE (ANGSTROMS) " << std::endl;
-//    logger("RVALUE (BIN)", "HEIGHT");
-    for(unsigned int i=0; i<bin_coefficients.size(); i++){
-        // integrate between lower and upper
-        probability_per_bin.push_back(bin_coefficients[i]*invNorm);
-//        logger(formatNumber((bin_width*(0.5+i)),2), formatNumber(value,6));
-    }
+    for (float c : bin_coefficients) probability_per_bin.push_back((float)(c*invNorm));
 }
 
 /**
- * creates Shannon limited binning of input P(r) distribution
- * use trapezoid rule to integerate for normalization
- * not sure if I should just interpolate the middle point of the bin using interpolation theory rather than average
- * param int count is the number of r-values in P(r) file
+ * creates Shannon limited binning of input P(r) distribution: each bin [i w, (i+1) w] is the exact integral of the
+ * linearly interpolated P(r) (0 outside the data); the bins are then normalized to sum 1
  */
 void PofRData::normalizePofR() {
-    // float sum = pofr[0].pr + pofr[count-1].pr; first and last are 0 by default
-    float sum;
-    unsigned int count = x_data.size();
-    // integrate per bin
+
+    std::vector<std::pair<float, float>> pts;
+    for (size_t i = 0; i < x_data.size(); ++i) pts.emplace_back(x_data[i], y_data[i]);
+    std::sort(pts.begin(), pts.end());
+
+    auto integrate = [&](double lo, double hi) {
+        double sum = 0;
+        for (size_t j = 0; j + 1 < pts.size(); ++j) {
+            double x0 = pts[j].first, x1 = pts[j + 1].first;
+            if (x1 <= lo || x0 >= hi || x1 <= x0) continue;
+            double y0 = pts[j].second, y1 = pts[j + 1].second;
+            double a = std::max(lo, x0), b = std::min(hi, x1);
+            double ya = y0 + (y1 - y0) * (a - x0) / (x1 - x0), yb = y0 + (y1 - y0) * (b - x0) / (x1 - x0);
+            sum += 0.5 * (ya + yb) * (b - a);
+        }
+        return sum;
+    };
+
+    probability_per_bin.clear();
     probability_per_bin.reserve((unsigned int)shannon_bins);
-    // round up when calculating shannon number and use the d_max from the round up.
-    float r_value;
-    float totalSum=0.0, lower, upper;
-
-    for(unsigned int i=0; i<shannon_bins; i++){ // integrate between lower and upper
-        lower = i*bin_width;     //q-value
-        upper = (i+1)*bin_width; //q-value
-        // cc = 0; // counts ticks
-        // integrate bin (area of bin)
-        // interpolate P(r) values for lower and upper
-        unsigned int lowerIndex=0, upperIndex=count;
-        float lowerRValue, upperRValue;
-
-        for(unsigned int j=0; j<count; j++){
-            if(x_data[j] > lower){ // equal when r is zero
-                lowerIndex = j-1;  // index of first value greater than lower bound on bin
-                break;
-            }
-        }
-
-        for(unsigned int j=0; j<count; j++){
-            upperIndex = j;
-            if(x_data[j] >= upper){ // equal when r is dmax
-                //upperIndex = j; // index of first value greater than upper bound on bin
-                break;
-            }
-        } // if upper exceeds dmax, upperIndex is last element
-
-        // perform linear interpolation of missing value
-        lowerRValue = 0;
-        if (lowerIndex > 0){
-            lowerRValue = y_data[lowerIndex] + (y_data[lowerIndex+1] - y_data[lowerIndex])*(lower - x_data[lowerIndex])/(x_data[lowerIndex+1]- x_data[lowerIndex]);
-        }
-
-        upperRValue = 0;
-        if (upperIndex < count){
-            upperRValue = y_data[upperIndex-1] + (y_data[upperIndex] - y_data[upperIndex-1])*(upper - x_data[upperIndex-1])/(x_data[upperIndex]- x_data[upperIndex-1]);
-        }
-
-        // do integration of bin
-        sum = 0.0;
-        float * pPofR;
-        for (unsigned int j=lowerIndex; j<count; j++){
-            r_value = x_data[j];
-            unsigned int lastIndex = 0;
-            if (r_value > lower && r_value < upper){
-                pPofR = &y_data[j];
-                float height = std::min(lowerRValue, *pPofR);
-                sum += height*(r_value-lower) + abs(lowerRValue - *pPofR)*(r_value-lower)*0.5;
-
-                lower = r_value;
-                lowerRValue = *pPofR;
-                lastIndex = j;
-            }
-
-            if (r_value >= upper) { // add last trapezoid to area
-                // area of rectable + area of triangle
-                // sum += (upper - lower)*min(upperRValue, pofr[lastIndex].pr) + abs(upperRValue - pofr[lastIndex].pr)*(r_value-lower)*0.5;
-                sum += (upper - lower)*std::min(upperRValue, y_data[lastIndex]) + abs(upperRValue - y_data[lastIndex])*(upper-lower)*0.5;
-                break;
-            }
-        }
-
-        probability_per_bin.push_back(sum);
-        totalSum += sum;
+    double totalSum = 0.0;
+    for (unsigned int i = 0; i < (unsigned int)shannon_bins; i++) {
+        double s = integrate(i * (double)bin_width, (i + 1) * (double)bin_width);
+        probability_per_bin.push_back((float)s);
+        totalSum += s;
     }
+    if (totalSum <= 0) throw std::invalid_argument("P(r) integrates to zero or less in " + getFilename());
 
-    // trapezoid rule (integrate Pr-distribution to calculate normalization constant)
-    // assume last r-value is 0 at d_max
-    float partialSum=0.0f;
-    for(unsigned int i=0; i< count; i++){
-        partialSum += 2*y_data[i];
-    }
-
-    float invPartialSum = 1.0f/totalSum;
-
-    normalize(invPartialSum);
+    normalize((float)(1.0/totalSum));
 }
 
 void PofRData::normalize(float norm){
 
-    FILE * pFile;
-
-    const char *outputFileName;
+    for (auto & p : probability_per_bin) p *= norm;
+    std::cout << " NORMALIZATION CONSTANT " << norm << std::endl;
+    if (!write_normalized) return;
 
     std::string nameOf = base_file->getStem() + "_norm.txt";
-    outputFileName = nameOf.c_str() ;
-    pFile = fopen(outputFileName, "w");
+    FILE * pFile = fopen(nameOf.c_str(), "w");
+    if (!pFile) { std::cerr << "PofRData: cannot write " << nameOf << std::endl; return; }
 
-    // Normalilize
-    std::cout << " NORMALIZATION CONSTANT " << norm << std::endl;
-    std::cout << " NORMALIZED P(r) : " << std::endl;
+    std::cout << " NORMALIZED P(r) : " << nameOf << std::endl;
     fprintf(pFile, "# NORMALIZED P(r)\n");
     fprintf(pFile, "# REMARK  BINWIDTH => %.3f \n", bin_width);
     fprintf(pFile, "# REMARK      DMAX => %.0f \n", dmax);
     fprintf(pFile, "# REMARK   NS DMAX => %.0f \n", ns_dmax);
     fprintf(pFile, "  %.3f %.8f\n", 0.0, 0.0);
     for(unsigned int i=0; i<probability_per_bin.size(); i++){
-        probability_per_bin[i] = probability_per_bin[i]*norm;
-        //printf("  %.3f %.8f\n", bin_width*(0.5+i), probability_per_bin[i]);
         fprintf(pFile, "  %.3f %.8f\n", bin_width*(0.5+i), probability_per_bin[i]); // should match bin -> P(r) mapping in input file
     }
-
     fclose(pFile);
 }
 
 // returns the r-value
 float PofRData::getXDataAt(unsigned int index) {
-    return x_data[index];
+    return x_data.at(index);
 }
 
 // returns Pr value
 float PofRData::getYDataAt(unsigned int index) {
-    return y_data[index];
+    return y_data.at(index);
 }
 
 // returns sigma, should be 0
 float PofRData::getSigmaAt(unsigned int index) {
-    return sigma_data[index];
+    return sigma_data.at(index);
 }
 
+void PofRData::rebindScore() {
+    if (score == nullptr) return;
+    delete score;
+    score = new RealSpaceScore(zeroBin, invBinSize, working_probability_per_bin);
+}
 
 /*
  * Scoring function is based on Score Interface
@@ -374,62 +313,58 @@ float PofRData::getSigmaAt(unsigned int index) {
  * maxbin is from size of the universe
  */
 void PofRData::setScoringFunction(unsigned int maxBin){
-    // effectively creates working distribution
-    working_probability_per_bin.resize(maxBin);
-    std::fill(working_probability_per_bin.begin(), working_probability_per_bin.end(), 0);
     /*
      * probability_per_bin set by bin_coefficients.size()
      *
      * maxBin must be > bin_coefficients.size()
      */
-    if (probability_per_bin.size() > working_probability_per_bin.size()){
+    if (probability_per_bin.size() > maxBin){
         std::string msg = "ERROR => PR DATA BINS : " + std::to_string(probability_per_bin.size()) + " > WORKING BINS : " + std::to_string(maxBin);
         throw std::invalid_argument(msg);
     }
-
+    // effectively creates working distribution
+    working_probability_per_bin.assign(maxBin, 0.0f);
     std::copy(probability_per_bin.begin(), probability_per_bin.end(), working_probability_per_bin.begin());
 
     //last nonzero bin
     zeroBin=0;
-    for (unsigned int i=0; i<maxBin; i++){ // if maxbin is greater than probability_per_bin.size, we have an empty bin
+    while (zeroBin < maxBin && working_probability_per_bin[zeroBin] > 0) zeroBin++;   // maybe this should be flt_epsilon
 
-        if (working_probability_per_bin[zeroBin] <= 0){ // maybe this should be flt_epsilon
-            break;
-        }
-        zeroBin++;
-    }
-
+    delete score;
     score = new RealSpaceScore(zeroBin, invBinSize, working_probability_per_bin);
 }
 
-bool PofRData::validate(std::string message) {
+bool PofRData::checkData(std::string & message) const {
 
     char out[256];
     bool flag = true;
+    message.clear();
 
     // check that everything is found
-    if (dmax <= 0 || qmax < 0.1) {
-        // throw exception
-        sprintf(out, "QMAX/DMAX NOT FOUND OR EQUAL TO ZERO %.1f %.4f /n", dmax, qmax);
+    if (dmax <= 0 || qmax < 0.1f) {                     // as before: QMAX must be at least 0.1 A^-1
+        std::snprintf(out, sizeof out, "QMAX/DMAX NOT FOUND OR EQUAL TO ZERO %.1f %.4f\n", dmax, qmax);
         message += out;
         flag = false;
     }
 
-    std::string x_tag, y_tag;
-    if (total_data_points < 10|| x_data.size() < 4 || y_data.size() < 4 || sigma_data.size() < 4){
-        sprintf(out, "Pr distribution parsed incorrectly :: r %d P(r) %d /n", (int)x_data.size(), (int)y_data.size());
+    if (total_data_points < 10 || x_data.size() < 4 || y_data.size() < 4 || sigma_data.size() < 4){
+        std::snprintf(out, sizeof out, "Pr distribution parsed incorrectly :: r %d P(r) %d\n", (int)x_data.size(), (int)y_data.size());
         message += out;
         flag = false;
     }
 
-    // qmax*dmax/PI = ns
-    if (ns_dmax < 4 || shannon_bins < 4){
-        sprintf(out, "Shannon number too small (<4) check dmax and qmax :: %.0f /n", ns_dmax);
+    // qmax*dmax/PI = ns (only once it has been computed)
+    if (shannon_bins > 0 && (ns_dmax < 4 || shannon_bins < 4)){
+        std::snprintf(out, sizeof out, "Shannon number too small (<4) check dmax and qmax :: %.0f\n", shannon_bins);
         message += out;
         flag = false;
     }
 
     return flag;
+}
+
+bool PofRData::validate(std::string message) {
+    return checkData(message);
 }
 
 unsigned short int PofRData::convertToBin(float distance){
@@ -449,15 +384,12 @@ unsigned short int PofRData::convertToBin(float distance){
     * Since we are comparing floats for binning, need to look at relative epsilon
     * We assume ratio is always >= floored
     * bead distances that are equal to the upper limit of a bin-width need to be rounded down and decremented by 1
+    *
+    * If ratio is 2.00001 and floored is 2
+    * diff is greater than 0 by a small margin
     */
-    if (diff <= ratio*100*FLT_EPSILON ){ // for ratios that are at the border
+    if (diff <= 1000*FLT_EPSILON ){ // for ratios that are at the border
         binlocale = (floored > 0) ? ((unsigned short int)floored - 1) : 0;
-
-//            if (binlocale > 0){
-//                std::cout << bin_width <<  " ratio " << ratio << "  " << floored << " => " << binlocale << " distance " << distance << " " << dmax << std::endl;
-//                printf("    ratio : %.5E floored => %i  TIME : %.4f\n", ratio, floored);
-//                exit(0);
-//            }
     } else {
         binlocale = (unsigned short int)floored;
     }
@@ -466,5 +398,6 @@ unsigned short int PofRData::convertToBin(float distance){
 }
 
 double PofRData::getScore(std::vector<unsigned int> &modelPR){
+    if (score == nullptr) throw std::logic_error("PofRData::getScore called before setScoringFunction");
     return (*score)(modelPR);
 }

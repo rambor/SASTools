@@ -7,7 +7,7 @@ namespace Residues {
     std::vector<Residue> residues = {
             Residue("rA", {
                     Atom("N1", 7, 7, 13.944),
-                    Atom("C2", 6, 103, 18.006),
+                    Atom("C2", 6, 103, 18.006), // C(sp2)-H
                     Atom("N3", 7, 7, 15.211),
                     Atom("C4", 6, 6, 9.076),
                     Atom("C5", 6, 6, 9.252),

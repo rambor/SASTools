@@ -69,14 +69,15 @@ public:
         if (it != atoms.end()) {
             // found element. it is an iterator to the first matching element.
             return &*it;
-        } else {
-            // guess atom and add to residue and return newly made atom
-            std::string tempAtom = std::string(atom_type);
-            boost::algorithm::trim(tempAtom);
+        }
 
-            if (ifNitrogen(atom_type) || (tempAtom == "N") || (tempAtom == "N1") || (tempAtom == "N2") || (tempAtom == "N3") || (tempAtom == "N4") || (tempAtom == "N5") || (tempAtom == "N6") || (tempAtom == "N7") || (tempAtom == "N8") || (tempAtom == "N9")  ) {
+        // guess atom and add to residue and return newly made atom
+        std::string tempAtom = std::string(atom_type);
+        boost::algorithm::trim(tempAtom);
+
+        if (ifNitrogen(atom_type) || (tempAtom == "N") || (tempAtom == "N1") || (tempAtom == "N2") || (tempAtom == "N3") || (tempAtom == "N4") || (tempAtom == "N5") || (tempAtom == "N6") || (tempAtom == "N7") || (tempAtom == "N8") || (tempAtom == "N9")  ) {
                 atoms.emplace_back(Atom(tempAtom, 7, 108, 13.429));
-            } else if (ifCarbon(atom_type) &&
+        } else if (ifCarbon(atom_type) &&
                       (tempAtom == "CA" ||
                        tempAtom == "C1" ||
                        tempAtom == "C2" ||
@@ -85,43 +86,43 @@ public:
                        tempAtom == "C5" ||
                        tempAtom == "C6")) { // assuming Csp3-H
                 atoms.emplace_back(Atom(tempAtom, 6, 100, 13.217));
-            } else if (tempAtom == "C") {
+        } else if (tempAtom == "C") {
                 atoms.emplace_back(Atom(tempAtom, 6, 6, 8.696));
-            } else if (ifOxygen(atom_type) || tempAtom == "O" || tempAtom == "O1" || tempAtom == "O2" || tempAtom == "O3" || tempAtom == "O4" || tempAtom == "O5" || tempAtom == "O6" || tempAtom == "OH" || tempAtom == "OE") {
+        } else if (ifOxygen(atom_type) || tempAtom == "O" || tempAtom == "O1" || tempAtom == "O2" || tempAtom == "O3" || tempAtom == "O4" || tempAtom == "O5" || tempAtom == "O6" || tempAtom == "OH" || tempAtom == "OE") {
                 atoms.emplace_back(Atom(tempAtom, 6, 105, 15.818));
-            } else if (tempAtom == "CB" || ifCarbon(atom_type)) { // methylene
+        } else if (tempAtom == "CB" || ifCarbon(atom_type)) { // methylene
                 atoms.emplace_back(Atom(tempAtom, 6, 101, 22.578));
-            } else if (tempAtom == "CG") {
+        } else if (tempAtom == "CG") {
                 atoms.emplace_back(Atom(tempAtom, 6, 101, 22.578));
-            } else if (tempAtom == "CD" || tempAtom == "CE" || tempAtom == "CM" || tempAtom == "CT") {
+        } else if (tempAtom == "CD" || tempAtom == "CE" || tempAtom == "CM" || tempAtom == "CT") {
                 atoms.emplace_back(Atom(tempAtom, 6, 101, 23.365));
-            } else if (ifMethyleneCarbon(atom_type)){
+        } else if (ifMethyleneCarbon(atom_type)){
                 atoms.emplace_back(Atom(tempAtom, 6, 101, 22.847));
-            } else if (tempAtom == "NZ") {
+        } else if (tempAtom == "NZ") {
                 atoms.emplace_back(Atom(tempAtom, 7, 108, 21.413));
-            } else if (tempAtom == "OXT" || tempAtom == "OT") { // taken from CRYSOL TABLE as O* (deprotonated oxygen)
+        } else if (tempAtom == "OXT" || tempAtom == "OT") { // taken from CRYSOL TABLE as O* (deprotonated oxygen)
                 atoms.emplace_back(Atom(tempAtom, 8, 106, 9.13));
-            } else if (tempAtom == "P") {
+        } else if (tempAtom == "P") {
                 atoms.emplace_back(Atom(tempAtom, 15, 15, 11.853));
-            }  else if (atom_type == "O1P" ||
-                        atom_type == "O2P" ||
-                        atom_type == "OP1" ||
-                        atom_type == "OP2" ||
-                        atom_type == "O3P" ||
-                        atom_type == "OP3") {
+        }  else if (atom_type == "O1P" ||
+            atom_type == "O2P" ||
+            atom_type == "OP1" ||
+            atom_type == "OP2" ||
+            atom_type == "O3P" ||
+            atom_type == "OP3") {
                 atoms.emplace_back(Atom(tempAtom, 8, 8, 16.235));
-            } else if (tempAtom == "SD" || tempAtom == "S1" || tempAtom == "S2" || tempAtom == "S3" || tempAtom == "S4" || ifSulfur(tempAtom)) {
+
+        } else if (tempAtom == "SD" || tempAtom == "S1" || tempAtom == "S2" || tempAtom == "S3" || tempAtom == "S4" || ifSulfur(tempAtom)) {
                 atoms.emplace_back(Atom(tempAtom, 16, 16, 36.748));
-            } else if (tempAtom == "FE" || tempAtom == "FE1" || tempAtom == "FE2" || tempAtom == "FE3" || tempAtom == "FE4" || ifIron(tempAtom)) {
+        } else if (tempAtom == "FE" || tempAtom == "FE1" || tempAtom == "FE2" || tempAtom == "FE3" || tempAtom == "FE4" || ifIron(tempAtom)) {
                 atoms.emplace_back(Atom(tempAtom, 26, 26, 36.748));
-            } else if (ifBridgingOxygen(atom_type)){
+        } else if (ifBridgingOxygen(atom_type)){
                 atoms.emplace_back(Atom(tempAtom, 8, 8, 17.386));
-            } else { // generic
+        } else { // generic
                 atoms.emplace_back(Atom(tempAtom, 8, 8, 16.21));
-            }
+        }
 
             return &atoms.back();
-        }
     }
 
     inline std::string getName() const { return name; }

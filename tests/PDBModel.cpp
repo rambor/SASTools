@@ -63,7 +63,9 @@ TEST_F(PDBModelTests, getOriginalDataTest){
 }
 
 TEST_F(PDBModelTests, checkNonLibraryResidue){
+
     PDBModel testModel = PDBModel(fixture(1J4T_artocarpin.pdb), false, false);
+
 }
 
 TEST_F(PDBModelTests, checkIsResidue){

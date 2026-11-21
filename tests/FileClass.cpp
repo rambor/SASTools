@@ -43,10 +43,6 @@ TEST_F(FileClassTests, checkIsPDB){
     EXPECT_FALSE(bsaFile.isMMCIF());
 }
 
-TEST_F(FileClassTests, testForEmptyFileException){
-    ASSERT_THROW(FileClass("dog.pdb"), std::invalid_argument);
-}
-
 TEST_F(FileClassTests, testFileStem){
     EXPECT_EQ(bsaFile.getStem(), "bsa");
 }

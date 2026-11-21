@@ -17,7 +17,7 @@
 
 #include <string>
 #include <iostream>
-#include <boost/filesystem.hpp>
+#include <filesystem>
 
 class FileClass {
     std::string filename;
@@ -40,8 +40,8 @@ public:
     const std::string getFilename() const { return filename; }
     const std::string getFileExtension() const { return extension; }
     const std::string getFullPath() const { return full_path; }
-    const std::string getStem() const { return boost::filesystem::path(filename).stem().string();}
+    const std::string getStem() const { return std::filesystem::path(filename).stem().string();}
 };
 
 
-#endif //PDBTOOLS_FILECLASS_H
+#endif //SASTOOLS_FILECLASS_H

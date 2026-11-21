@@ -24,15 +24,17 @@ IofQData::IofQData(std::string filename, bool convertToAngstromsFromNM) :
 
     signal_to_noise_per_point.push_back(100.0);
     signal_to_noise_per_point.push_back(10.0);
+    signal_to_noise_per_point.push_back(4.0);
     signal_to_noise_per_point.push_back(1.8);
     signal_to_noise_per_point.push_back(0.0f);
 
     // may not be import for fitting smoothed data - only for Durbin Watson
     //points per signal must be even
-    points_per_signal_to_noise.push_back(6);
-    points_per_signal_to_noise.push_back(8);
-    points_per_signal_to_noise.push_back(12);
-    points_per_signal_to_noise.push_back(22);
+    points_per_signal_to_noise.push_back(5);
+    points_per_signal_to_noise.push_back(9);
+    points_per_signal_to_noise.push_back(17);
+    points_per_signal_to_noise.push_back(27);
+    points_per_signal_to_noise.push_back(41);
 
 }
 
@@ -168,7 +170,6 @@ void IofQData::makeWorkingSet(int value){
 // makes a working set using the entire set of data
 void IofQData::makeWorkingSet(){
 
-    //std::random_device rd;
     std::mt19937 gen(std::chrono::high_resolution_clock::now().time_since_epoch().count());
 
     const auto pQ = x_data.data();
@@ -356,6 +357,7 @@ void IofQData::assignPointsPerBinForWorkingSet(){
     // determine the average signal-to-noise in each shannon channel
     for (auto & cc : collated_indices) { // collated indices could have last as empty
 
+
         if (!cc.second.empty()) {
             // determine average signal to noise in bin
             float count_sum = 0.0f;
@@ -431,7 +433,11 @@ void IofQData::assignPointsPerBinForWorkingSet(){
             // random points on either side of Shannon channel
              */
             if (sn > limit || sn < 0){ // negative intensities might happen
-                points_to_sample_per_shannon_bin[n] = points_per_signal_to_noise[counter];
+                // should be a percentage of the number of points in the bin
+                auto totalToUse = (unsigned int)(collated_indices.find(n)->second.size() * (float)points_per_signal_to_noise[counter]/100.0);
+                //points_to_sample_per_shannon_bin[n] = points_per_signal_to_noise[counter];
+                points_to_sample_per_shannon_bin[n] = totalToUse;
+                std::cout << n << " " << totalToUse << " " << points_per_signal_to_noise[counter] << " " << collated_indices.find(n)->second.size() << std::endl;
                 break;
             }
             counter++;
@@ -442,6 +448,7 @@ void IofQData::assignPointsPerBinForWorkingSet(){
     }
 
     shannon_bins = (float)ns;
+
 }
 
 

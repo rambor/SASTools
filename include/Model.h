@@ -14,6 +14,7 @@
 
 #ifndef SASTOOLS_MODEL_H
 #define SASTOOLS_MODEL_H
+#include <vector>
 
 class FileClass;
 // interface

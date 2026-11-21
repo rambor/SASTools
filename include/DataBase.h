@@ -16,13 +16,15 @@
 #define SASTOOLS_DATABASE_H
 
 #include <math.h>
+#include <string>
+#include <vector>
 #include "FileClass.h"
 #include "Score.h"
 
 // interface
 class DataBase{
 public:
-    float rg=0.0, rg_sigma, izero, izero_sigma, volume, qmax, qmin;
+    float rg=0.0, rg_sigma=0.0, izero=0.0, izero_sigma=0.0, volume=0.0, qmax=0.0, qmin=0.0;
     bool isPr = true;
 
 protected:
@@ -34,15 +36,15 @@ protected:
     // Prevent moving DataBase base class instance.
     DataBase& operator=(DataBase&&) = default;
 
-    FileClass * base_file;
-    Score * score;
+    FileClass * base_file = nullptr;
+    Score * score = nullptr;
 
     std::string x_tag, y_tag;
     std::vector<float> x_data, y_data, sigma_data, y_calc;
-    float ns_dmax, dmax, shannon_bins, weight=1.0;
-    float bin_width, invBinSize;
+    float ns_dmax=0, dmax=0, shannon_bins=0, weight=1.0;
+    float bin_width=0, invBinSize=0;
 
-    unsigned int total_data_points;
+    unsigned int total_data_points = 0;
     std::string units;
 
 public:

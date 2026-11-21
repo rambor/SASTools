@@ -13,6 +13,9 @@
 //   limitations under the License.
 
 #include "PDBModel.h"
+
+#include <float.h>
+
 #include "Residues.h"
 
 PDBModel::PDBModel(const std::string &file, bool discardWaters, bool isRNA) : Model(file), discardWaters(discardWaters), ifRNA(isRNA) {
@@ -82,6 +85,9 @@ PDBModel::PDBModel(const std::string &file, bool discardWaters, bool isRNA) : Mo
  */
 void PDBModel::extractCoordinates() {
 
+    low_vec=vector3(FLT_MAX,FLT_MAX,FLT_MAX);
+    high_vec=vector3(-FLT_MAX,-FLT_MAX,-FLT_MAX);
+    float * p_x, *p_y, *p_z;
     std::ifstream scxFile (base_file.getFullPath());
     if(scxFile.fail()){
         //File does not exist code here
@@ -152,6 +158,19 @@ void PDBModel::extractCoordinates() {
                 y.push_back(std::strtof(line.substr(38,8).c_str(), nullptr));
                 z.push_back(std::strtof(line.substr(46,8).c_str(), nullptr));
 
+                p_x = &x.back();
+                p_y = &y.back();
+                p_z = &z.back();
+
+                low_vec.x = std::min(low_vec.x,*p_x);
+                low_vec.y = std::min(low_vec.y,*p_y);
+                low_vec.z = std::min(low_vec.z,*p_z);
+
+                high_vec.x = std::max(high_vec.x,*p_x);
+                high_vec.y = std::max(high_vec.y,*p_y);
+                high_vec.z = std::max(high_vec.z,*p_z);
+
+                
                 // Atom type taken from rows 13-16 needs to be converted to the actual atom, e.g., CB1 is C
                 atomType.push_back(line.substr(12,4));// needs to be this way until atomic numbers are assigned
                 uniqAtomTypes.insert(alt); // container is a set, holds only unique entries
@@ -207,8 +226,8 @@ void PDBModel::extractCoordinates() {
 
                 // find residue and atom type in Residues (if not availabe, user must specify)
                 auto pRes = Residues::getResidue(tempResi);
-                // if pRes not found, make new residue, add to residues along with atom type and guess atom?
 
+                // if pRes not found, make new residue, add to residues along with atom type and guess atom?
                 if (pRes == nullptr){
                     logger("CREATING RESIDUE", tempResi);
                     pRes = Residues::createResidue(tempResi);
@@ -222,6 +241,11 @@ void PDBModel::extractCoordinates() {
                 atomASFNumbers.push_back(pAtom->getASFNumber());
                 atomicRadii.push_back(pAtom->getRadii());
                 atomicGaussianRadii.push_back(pAtom->getGaussianRadii());
+
+                if (pAtom->getGaussianRadii() < 1) {
+                    std::cout << pRes->getName() << " " <<  atom_type << std::endl;
+                    exit(0);
+                }
 
                 // reassign atom types for naming consistency
                 // rename C5M -> C7 if dT and O1P, O2P to OP1 and OP2

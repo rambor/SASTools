@@ -12,6 +12,11 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
+// Port to standard C++17 (no Boost): boost::regex -> std::regex, boost::split/trim -> local helpers,
+// boost::filesystem -> std::filesystem (FileClass). Public interface unchanged; one optional constructor
+// argument added (writeNormalized, default true = old behaviour of writing <stem>_norm.txt).
+// Fixes are listed at the top of PofRData.cpp.
+
 #ifndef SASTOOLS_POFRDATA_H
 #define SASTOOLS_POFRDATA_H
 
@@ -22,6 +27,7 @@
 #include <string>
 #include <vector>
 #include <cfloat>
+#include <cmath>
 
 #include <iostream>
 #include <cstdio>
@@ -30,38 +36,35 @@
 
 #include <stdexcept>
 #include <fstream>
-#include <boost/regex.hpp>
-#include <boost/foreach.hpp>
-#include <boost/filesystem.hpp>
-#include <boost/algorithm/string.hpp>
 
 class PofRData : public DataBase {
 
-    bool convert = false;
+    bool convert = false, write_normalized = true;
     float rave=0.0f;
-    unsigned int totalPhases=1, zeroBin;
+    unsigned int totalPhases=1, zeroBin=0;
     std::vector<float> bin_coefficients;
     std::vector<float> probability_per_bin;
     std::vector<float> working_probability_per_bin;
+
+    bool checkData(std::string & message) const;       // validate() with a message that reaches the caller
+    void convertUnits();                                // nm -> Angstrom when requested
+    void rebindScore();                                 // the score refers to this object's working distribution
 
 public:
     PofRData() : DataBase(){
         zeroBin = 0;
     }
 
-    PofRData(std::string filename, bool convertToAngstromsFromNM);
+    PofRData(std::string filename, bool convertToAngstromsFromNM, bool writeNormalized = true);
 
     ~PofRData() override {
-
         delete base_file;
-        if (score == nullptr){
-            delete score;
-        }
+        delete score;
     }
 
     // copy constructor
-    PofRData(const PofRData &toCopy) {
-        base_file = new FileClass(toCopy.base_file->getFullPath());
+    PofRData(const PofRData &toCopy) : DataBase() {
+        base_file = toCopy.base_file ? new FileClass(toCopy.base_file->getFullPath()) : nullptr;
 
         x_tag = toCopy.x_tag;
         y_tag = toCopy.y_tag;
@@ -69,6 +72,7 @@ public:
         x_data = toCopy.x_data; // assignment operator
         y_data = toCopy.y_data;
         sigma_data = toCopy.sigma_data;
+        y_calc = toCopy.y_calc;
 
         ns_dmax = toCopy.ns_dmax;
         dmax = toCopy.dmax;
@@ -78,7 +82,10 @@ public:
         invBinSize = toCopy.invBinSize;
         total_data_points = toCopy.total_data_points;
         units = toCopy.units;
+        isPr = toCopy.isPr;
 
+        convert = toCopy.convert;
+        write_normalized = toCopy.write_normalized;
         totalPhases = toCopy.totalPhases;
         zeroBin = toCopy.zeroBin;
         volume = toCopy.volume;
@@ -96,12 +103,12 @@ public:
         bin_coefficients = toCopy.bin_coefficients;
         working_probability_per_bin = toCopy.working_probability_per_bin;
 
-        score = new RealSpaceScore(zeroBin, invBinSize, working_probability_per_bin);
+        if (toCopy.score != nullptr) score = new RealSpaceScore(zeroBin, invBinSize, working_probability_per_bin);
     }
 
     PofRData * clone() const override { return new PofRData(*this); }
 
-    // copy assignment operator
+    // copy assignment operator (copy and swap)
     PofRData & operator=(const PofRData & dataToCopy) {
         if (this == &dataToCopy)
             return *this;
@@ -111,99 +118,62 @@ public:
         return *this;
     }
 
+    // move constructor
+    PofRData(PofRData && dataToMove) noexcept : DataBase() { swap(dataToMove); }
+
     /**
-     * Rule of 3.5, define copy, destructor and assignment operator
-     * @param other
+     * true member-wise swap; each object's score is rebuilt so that it refers to its own working distribution
      */
-    void swap(PofRData & other) {
+    void swap(PofRData & other) noexcept {
 
         std::swap(base_file, other.base_file);
-
-        other.x_tag = std::move(x_tag);
-        other.y_tag = std::move(y_tag);
-
-        other.x_data = std::move(x_data);
-        other.y_data = std::move(y_data);
-        other.sigma_data = std::move(sigma_data);
-
-        other.ns_dmax = ns_dmax;
-        other.dmax = dmax;
-        other.shannon_bins = shannon_bins;
-        other.weight = weight;
-        other.bin_width = bin_width;
-        other.invBinSize = invBinSize;
-        other.total_data_points = total_data_points;
-        other.units = std::move(units);
-
-        other.totalPhases = totalPhases;
-        other.zeroBin = zeroBin;
-        other.volume = volume;
-
-        other.izero = izero;
-        other.izero_sigma = izero_sigma;
-
-        other.rg = rg;
-        other.rg_sigma = rg_sigma;
-        other.rave = rave;
-        other.qmin = qmin;
-        other.qmax = qmax;
-
-        other.probability_per_bin = std::move(probability_per_bin);
-        other.bin_coefficients = std::move(bin_coefficients);
-        other.working_probability_per_bin = std::move(working_probability_per_bin);
-
-        // pointer to the score that is on the free store
         std::swap(score, other.score);
+
+        std::swap(x_tag, other.x_tag);
+        std::swap(y_tag, other.y_tag);
+
+        std::swap(x_data, other.x_data);
+        std::swap(y_data, other.y_data);
+        std::swap(sigma_data, other.sigma_data);
+        std::swap(y_calc, other.y_calc);
+
+        std::swap(ns_dmax, other.ns_dmax);
+        std::swap(dmax, other.dmax);
+        std::swap(shannon_bins, other.shannon_bins);
+        std::swap(weight, other.weight);
+        std::swap(bin_width, other.bin_width);
+        std::swap(invBinSize, other.invBinSize);
+        std::swap(total_data_points, other.total_data_points);
+        std::swap(units, other.units);
+        std::swap(isPr, other.isPr);
+
+        std::swap(convert, other.convert);
+        std::swap(write_normalized, other.write_normalized);
+        std::swap(totalPhases, other.totalPhases);
+        std::swap(zeroBin, other.zeroBin);
+        std::swap(volume, other.volume);
+
+        std::swap(izero, other.izero);
+        std::swap(izero_sigma, other.izero_sigma);
+
+        std::swap(rg, other.rg);
+        std::swap(rg_sigma, other.rg_sigma);
+        std::swap(rave, other.rave);
+        std::swap(qmin, other.qmin);
+        std::swap(qmax, other.qmax);
+
+        std::swap(probability_per_bin, other.probability_per_bin);
+        std::swap(bin_coefficients, other.bin_coefficients);
+        std::swap(working_probability_per_bin, other.working_probability_per_bin);
+
+        rebindScore();
+        other.rebindScore();
     }
 
 
     // move assignment operator
     PofRData & operator=(PofRData && dataToMove) noexcept {
-
-        if (this == &dataToMove)
-            return *this;
-
-        delete base_file;
-        delete score;
-        base_file = dataToMove.base_file;
-        score = dataToMove.score;
-        dataToMove.base_file = nullptr;
-        dataToMove.score = nullptr;
-
-        x_tag = dataToMove.x_tag; // copy assignment
-        y_tag = dataToMove.y_tag;
-
-
-        std::vector<float>().swap(x_data);
-        std::vector<float>().swap(y_data);
-        std::vector<float>().swap(sigma_data);
-
-        x_data = std::move(dataToMove.x_data);
-        y_data = std::move(dataToMove.y_data);
-        sigma_data = std::move(dataToMove.sigma_data);
-
-        ns_dmax = dataToMove.ns_dmax;
-        dmax = dataToMove.dmax;
-        shannon_bins = dataToMove.shannon_bins;
-        weight = dataToMove.weight;
-        bin_width = dataToMove.bin_width;
-        invBinSize = dataToMove.invBinSize;
-        total_data_points = dataToMove.total_data_points;
-        units = dataToMove.units;
-
-        totalPhases = dataToMove.totalPhases;
-        zeroBin = dataToMove.zeroBin;
-        volume = dataToMove.volume;
-        rg = dataToMove.rg;
-        rave = dataToMove.rave;
-        qmin = dataToMove.qmin;
-        qmax = dataToMove.qmax;
-
-
-        probability_per_bin = std::move(dataToMove.probability_per_bin); // transferring ownership
-        bin_coefficients = std::move(dataToMove.bin_coefficients);
-        working_probability_per_bin = std::move(dataToMove.working_probability_per_bin);
-
+        if (this != &dataToMove) swap(dataToMove);       // dataToMove takes the old contents and frees them
         return *this;
     }
 
@@ -225,6 +195,7 @@ public:
     float getSigmaAt(unsigned int index) override;
 
     float getDmax(){return dmax;}
+    float getNSDmax(){return ns_dmax;}
 
     bool validate(std::string message) override ;
 
@@ -233,6 +204,7 @@ public:
 
     const float * getProbabilityPerBin() const { return probability_per_bin.data();}
     const float * getWorkingProbabilityPerBin() const { return working_probability_per_bin.data();}
+    unsigned int getNumberOfProbabilityBins() const { return (unsigned int)probability_per_bin.size();}
 
     unsigned short int convertToBin(float distance);
 
@@ -244,8 +216,7 @@ public:
 
     inline void printKLDivergence(std::vector<unsigned int> &modelPR){
 
-        float totalCounts = 0.0;
-        float prob;
+        double totalCounts = 0.0;
         int totalm = modelPR.size();
 
         // normalization constant of model Pr
@@ -254,25 +225,25 @@ public:
             totalCounts += modelPR[i];
         }
 
-        float tempPR, r;
         // for modelPR values in bins > shannon_bins are zero since p*log p/q = 0 for p=0
         std::cout << "FINAL MODEL " << std::endl;
         std::cout << "       r       MODEL      EXP        D_KL" << std::endl;
-        for (unsigned int i=0; i < shannon_bins; i++){
-            prob = probability_per_bin[i];  // bounded by experimental Shannon Number
-            tempPR = modelPR[i];
-            r = bin_width*i+0.5f*bin_width;
-            printf(" %10.4f  %.6f  %.6f  % .6f\n", r, prob, tempPR/totalCounts, (prob * log(prob/tempPR*totalCounts)));
+        for (unsigned int i=0; i < (unsigned int)shannon_bins && i < probability_per_bin.size(); i++){
+            double prob = probability_per_bin[i];  // bounded by experimental Shannon Number
+            double model = (i < (unsigned int)totalm && totalCounts > 0) ? modelPR[i]/totalCounts : 0.0;
+            double r = bin_width*i+0.5f*bin_width;
+            double kl = prob > 0 ? (model > 0 ? prob * std::log(prob/model) : INFINITY) : 0.0;
+            printf(" %10.4f  %.6f  %.6f  % .6f\n", r, prob, model, kl);
         }
     }
 
-    /**
-* converts distances to bins, can be larger than dmax
-*/
+   /**
+    * converts distances to bins, can be larger than dmax
+    */
     inline unsigned int convertToBinUnsignedInt(float distance){
 
         float ratio = distance/bin_width;
-        float floored = floor(ratio);
+        float floored = std::floor(ratio);
         unsigned int binlocale=0;
         /*
          * lower < distance <= upper

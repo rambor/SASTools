@@ -35,9 +35,11 @@ public:
             name(name),
             atomicNumber(atomnumber),
             asf_number(atomasf),
-            volume(volume),
-            radii(std::cbrt(threeOver4PI * volume)),
-            g_radii(std::cbrt(invSqrtPI3 * volume)) {
+            volume(volume)
+             {
+
+        radii = std::cbrtf(threeOver4PI * volume);
+            g_radii = std::cbrtf(invSqrtPI3 * volume);
     }
 
 
@@ -51,6 +53,8 @@ public:
         volume = model.volume;
         radii = model.radii;
         g_radii = model.g_radii;
+        threeOver4PI = model.threeOver4PI;
+        invSqrtPI3 = model.invSqrtPI3;
     };
 
     //copy assignment - prevents copying
@@ -66,7 +70,8 @@ public:
         std::swap(volume , tmp.volume);
         std::swap(radii , tmp.radii);
         std::swap(g_radii , tmp.g_radii);
-
+        std::swap(threeOver4PI, tmp.threeOver4PI);
+        std::swap(invSqrtPI3 , tmp.invSqrtPI3);
         return *this;
     };
 
@@ -82,6 +87,8 @@ public:
         volume = std::move(model.volume);
         radii = std::move(model.radii);
         g_radii = std::move(model.g_radii);
+        threeOver4PI = std::move(model.threeOver4PI);
+        invSqrtPI3 = std::move(model.invSqrtPI3);
 
         return *this;
     }

@@ -27,6 +27,7 @@ public:
 };
 
 TEST_F(PofRDataTests, testGetFileName){
+    std::cout << ":: " << ribo30S.getFilename() << std::endl;
     EXPECT_EQ(ribo30S.getFilename(), "30S_0p22_pr.dat");
 }
 

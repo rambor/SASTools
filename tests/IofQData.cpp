@@ -65,22 +65,29 @@ TEST_F(IofQDataTests, testMakeWorkingSet){
 //        std::cout << datum.getQ() << " " << datum.getI() << std::endl;
 //    }
 
-    EXPECT_EQ(total, 82);
+    EXPECT_EQ(total, 155);
 }
 
+// testing how large of a sampling is required to sample at least all q-values once
 TEST_F(IofQDataTests, testMakeWorkingSetManyTimes){
 
     iofqdata.extractData();
-
-    for(int i=0; i<101; i++){
+    std::set<float> qvalues;
+    for(int i=0; i<601; i++){
         iofqdata.makeWorkingSet();
+        auto & workingQ = iofqdata.getWorkingSetQvalues();
+        for (auto & q : workingQ) {
+            qvalues.insert(q);
+        }
     }
+
+    //std::cout << iofqdata.getTotal() << " " << qvalues.size() << std::endl;
 
     auto & data = iofqdata.getWorkingSet();
     int total = data.size();
 
-    EXPECT_EQ(iofqdata.getTotal(), 1124);
-    EXPECT_EQ(total, 82);
+    EXPECT_EQ(iofqdata.getTotal(), qvalues.size() );
+    EXPECT_EQ(total, 155);
 }
 
 

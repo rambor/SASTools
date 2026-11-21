@@ -29,38 +29,46 @@ public:
     ReciprocalSpaceScore(unsigned int maxBin, std::vector<Datum> & workingSet, std::vector<float> & qrvalues, std::vector<float> & invVarValues) :
             maxBin(maxBin),
             totalInWorkingSet((unsigned int)workingSet.size()),
-            invTotal(1.0d/(double)workingSet.size()),
+            invTotal(workingSet.empty() ? 0.0 : 1.0/(double)workingSet.size()),
             pWorkingSet(workingSet),
             pSincQrValues(qrvalues),
             pInvVar(invVarValues){
         icalc.resize(totalInWorkingSet);
     };
 
-    virtual double operator() (std::vector<unsigned int> & modelPR) {
+    double operator() (std::vector<unsigned int> & modelPR) override {
         // calculate chi2
-        float value, diff, top=0, bottom=0;
 
-        std::vector<double> modelPR_float(modelPR.begin(), modelPR.end());
-        double totalCounts = 0.0d;
-        for (auto & pr : modelPR_float) {
-            totalCounts += pr;
-        }
-        double invTotalCounts = 1.0d/totalCounts;
+        //std::vector<double> modelPR_float(modelPR.begin(), modelPR.end());
+
+        const unsigned int nr = std::min<unsigned int>((unsigned int)modelPR.size(), maxBin);
+
+        double totalCounts = 0.0;
+        for (unsigned int r = 0; r < nr; ++r) totalCounts += modelPR[r];
+        if (totalCounts <= 0) return INFINITY;
+        const double invTotalCounts = 1.0/totalCounts;
+
 
         // for each q-value, calculate I_calc from P(r)
+        double top = 0, bottom = 0;
         for (unsigned int qr = 0; qr<totalInWorkingSet; qr++) {
-            float iofq=0;
-            unsigned int count=0;
-            for (auto & pr : modelPR_float) { // iterate over r-values
-                iofq += pSincQrValues[qr*maxBin + count]*pr*invTotalCounts;
-                count++;
-            }
+            double iofq=0;
+            //unsigned int count=0;
+            const float * row = &pSincQrValues[(size_t)qr*maxBin];
+
+            // for (auto & pr : modelPR_float) { // iterate over r-values
+            //     iofq += pSincQrValues[qr*maxBin + count]*pr*invTotalCounts;
+            //     count++;
+            // }
+            for (unsigned int r = 0; r < nr; ++r) iofq += row[r]*(double)modelPR[r];   // iterate over r-values
+            iofq *= invTotalCounts;
 
             icalc[qr] = iofq;
-            value = pInvVar[qr];
+            const double value = pInvVar[qr];
             top += iofq*pWorkingSet[qr].getI()*value;
             bottom += iofq*iofq*value;
         }
+        if (bottom <= 0) return INFINITY;
 
 //            FILE * pFile;
 //            const char *outputFileName;
@@ -68,10 +76,10 @@ public:
 //            outputFileName = nameOf.c_str() ;
 //            pFile = fopen(outputFileName, "w");
 //            std::cout << " ICALC" << std::endl;
-        float chi2=0;
-        float scale = top/bottom;
+        double chi2 = 0;
+        const double scale = top/bottom;
         for (unsigned int qr = 0; qr<totalInWorkingSet; qr++) {
-            diff = pWorkingSet[qr].getI() - scale*icalc[qr];
+            const double diff = pWorkingSet[qr].getI() - scale*icalc[qr];
 //                fprintf(pFile, "%.6E %.5E  %.5E \n", pWorkingSet[qr].getQ(), scale*icalc[qr], pWorkingSet[qr].getI());
             chi2 += diff*diff*pInvVar[qr];
         }

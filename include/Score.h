@@ -14,9 +14,11 @@
 
 #ifndef SASTOOLS_SCORE_H
 #define SASTOOLS_SCORE_H
+#include <vector>
+
 class Score {
 public:
-    Score() = default;
+    virtual ~Score() = default;
     virtual double operator() (std::vector<unsigned int> & bins) = 0;
 };
 #endif //SASTOOLS_SCORE_H

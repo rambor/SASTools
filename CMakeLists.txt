@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.8)
+cmake_minimum_required(VERSION 3.21)
 set(SASTools_LANGUAGES CXX)
 set(SASTools_VERSION 0.7)
 #
@@ -9,11 +9,11 @@ MESSAGE("BUILD TYPE ${CMAKE_BUILD_TYPE}")
 
 set(CMAKE_CXX_FLAGS_Release "${CMAKE_CXX_FLAGS_Release} -Wall -g1 -DNDEBUG -O3")
 
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 17)
 
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -pthread -Wall -g1 -DNDEBUG -ffast-math ")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread -Wall -g1 -DNDEBUG -ffast-math ")
 
 if(POLICY CMP0042) # MACOSX_RPATH
     cmake_policy(SET CMP0042 NEW)
@@ -64,7 +64,6 @@ MESSAGE("** BOOST SPECIAL => ${BOOST_RANDOM}")
 MESSAGE("** BOOST SPECIAL => ${BOOST_REGEX}")
 MESSAGE("** BOOST SPECIAL => ${BOOST_SYSTEM}")
 MESSAGE("** BOOST INCLUDE DIRECTORY: ${Boost_INCLUDE_DIR}")
-
 
 
 set(HEADERS ${header_path}/Model.h
