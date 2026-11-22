@@ -41,6 +41,7 @@ class PofRData : public DataBase {
 
     bool convert = false, write_normalized = true;
     float rave=0.0f;
+    float header_bin_width = 0.0f;                     // BIN WIDTH (delta r) from the file (0 = not given)
     unsigned int totalPhases=1, zeroBin=0;
     std::vector<float> bin_coefficients;
     std::vector<float> probability_per_bin;
@@ -88,6 +89,7 @@ public:
         write_normalized = toCopy.write_normalized;
         totalPhases = toCopy.totalPhases;
         zeroBin = toCopy.zeroBin;
+        header_bin_width = toCopy.header_bin_width;
         volume = toCopy.volume;
 
         izero = toCopy.izero;
@@ -159,6 +161,7 @@ public:
         std::swap(rg, other.rg);
         std::swap(rg_sigma, other.rg_sigma);
         std::swap(rave, other.rave);
+        std::swap(header_bin_width, other.header_bin_width);
         std::swap(qmin, other.qmin);
         std::swap(qmax, other.qmax);
 
@@ -211,6 +214,7 @@ public:
     double getScore(std::vector<unsigned int> &modelPR);
 
     float getRave(){ return rave;}
+    float getHeaderBinWidth() const { return header_bin_width; }   // 0 when the file has no BIN WIDTH (delta r) line
 
     float getProbabilityPerBin(int bin){return probability_per_bin[bin];}
 

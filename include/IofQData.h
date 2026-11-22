@@ -53,7 +53,12 @@ class IofQData : public DataBase {
     std::vector <float> workingSetQvalues;
     std::vector <float> cv_qvalues;
     std::vector<unsigned int> selectedIndices;
-    unsigned int workingSetSize, cvSetSize;
+    unsigned int workingSetSize = 0, cvSetSize = 0;
+    unsigned int scoreMaxBin = 0;          // maxBin of the score (to rebuild it for a copy/move)
+    bool seeded = false;                   // setSeed(): reproducible working and cross-validation sets
+    unsigned int seed = 0;
+    void rebindScore();                    // the score refers to this object's working set (rebuilt if there is one)
+    void makeScore();                      // new score on this object's vectors
 
     // collated_indices
     std::map<unsigned int, std::vector<unsigned int>> collated_indices;
@@ -65,11 +70,40 @@ public:
 
     IofQData(std::string filename, bool convertToAngstromsFromNM);
 
-    // copy constructor - prevent copying
-    IofQData(const IofQData & model)= default;
+    // copy constructor: own FileClass, own score (a member-wise copy shared both and deleted them twice)
+    IofQData(const IofQData & model) : DataBase(model) {
+        base_file = model.base_file ? new FileClass(model.base_file->getFullPath()) : nullptr;
+        score = nullptr;
+        convert = model.convert;
+        header = model.header;
+        sinc_qr = model.sinc_qr;
+        intensities = model.intensities;
+        useMe = model.useMe;
+        workingSet = model.workingSet;
+        cvSet = model.cvSet;
+        workingSetSmoothed = model.workingSetSmoothed;
+        signal_to_noise_per_point = model.signal_to_noise_per_point;
+        avg_signal_to_noise_per_shannon_bin = model.avg_signal_to_noise_per_shannon_bin;
+        points_per_signal_to_noise = model.points_per_signal_to_noise;
+        points_to_sample_per_shannon_bin = model.points_to_sample_per_shannon_bin;
+        invVarianceWorkingSet = model.invVarianceWorkingSet;
+        workingSetQvalues = model.workingSetQvalues;
+        cv_qvalues = model.cv_qvalues;
+        selectedIndices = model.selectedIndices;
+        workingSetSize = model.workingSetSize;
+        cvSetSize = model.cvSetSize;
+        collated_indices = model.collated_indices;
+        scoreMaxBin = model.scoreMaxBin;
+        seeded = model.seeded;
+        seed = model.seed;
+        if (model.score) makeScore();
+    }
 
-    // copy assignment - prevent copying
-    IofQData & operator=(const IofQData & model)= default;
+    // copy assignment (copy, then move)
+    IofQData & operator=(const IofQData & model){
+        if (&model != this){ IofQData tmp(model); *this = std::move(tmp); }
+        return *this;
+    }
 
     // move assignment operator
     IofQData & operator=(IofQData && model) noexcept {
@@ -80,7 +114,7 @@ public:
 
 
         rg = model.rg;
-        rg_sigma = model.rg;
+        rg_sigma = model.rg_sigma;
         izero = model.izero;
         izero_sigma = model.izero_sigma;
         volume = model.volume;
@@ -128,6 +162,10 @@ public:
         cvSetSize = model.cvSetSize;
 
         collated_indices = std::move(model.collated_indices);
+        std::swap(scoreMaxBin, model.scoreMaxBin);
+        seeded = model.seeded;
+        seed = model.seed;
+        rebindScore(); model.rebindScore();     // each score refers to its own object's vectors
 
         return *this;
     }
@@ -141,10 +179,7 @@ public:
     ~IofQData() override {
 
         delete base_file;
-
-        if (score == nullptr){
-            delete score;
-        }
+        delete score;
     }
 
     std::string getFilename() override;
@@ -164,6 +199,8 @@ public:
     void calculateShannonInformation();
 
     void makeWorkingSet();
+    // fixed seed for makeWorkingSet()/makeCVSet() (default: seeded from the clock, a different set every run)
+    void setSeed(unsigned int value){ seeded = true; seed = value; }
 
     void makeWorkingSet(int value);
 

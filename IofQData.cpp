@@ -45,6 +45,7 @@ std::string IofQData::getFilename() {
 void IofQData::extractData() {
     logger("","Extracting data");
     std::ifstream data (base_file->getFullPath(), std::ifstream::in);
+    if (!data.is_open()) throw std::invalid_argument("IofQData: cannot open I(q) file " + base_file->getFullPath());
 
     if (data.is_open()) {
 
@@ -69,7 +70,7 @@ void IofQData::extractData() {
              */
 
             if (isspace(line[0])){
-                line.erase(line.begin(), std::find_if(line.begin(), line.end(), std::not1(std::ptr_fun<int, int>(std::isspace))));
+                line.erase(line.begin(), std::find_if(line.begin(), line.end(), [](unsigned char c){ return !std::isspace(c); }));
             }
 
             std::vector<std::string> tempLine;
@@ -126,6 +127,7 @@ void IofQData::extractData() {
             }
         }
 
+        if (total_data_points == 0) throw std::invalid_argument("IofQData: no q I(q) sigma lines in " + base_file->getFullPath());
         qmin = x_data[0];
         qmax = x_data[total_data_points-1];
         logger("QMIN", formatNumber(qmin, 5));
@@ -170,7 +172,9 @@ void IofQData::makeWorkingSet(int value){
 // makes a working set using the entire set of data
 void IofQData::makeWorkingSet(){
 
-    std::mt19937 gen(std::chrono::high_resolution_clock::now().time_since_epoch().count());
+    if (dmax <= 0 || collated_indices.empty())   // the Shannon partition needs dmax
+        throw std::invalid_argument("IofQData::makeWorkingSet: no DMAX in " + getFilename() + " (set it with setDmax(), e.g. from the P(r) file)");
+    std::mt19937 gen(seeded ? seed : (unsigned int)std::chrono::high_resolution_clock::now().time_since_epoch().count());
 
     const auto pQ = x_data.data();
 
@@ -469,12 +473,23 @@ void IofQData::setScoringFunction(unsigned int maxBin) {
         }
     }
 
+    delete score;                                  // a second call replaced the score without freeing it
+    scoreMaxBin = maxBin;
     score = new ReciprocalSpaceScore(maxBin, workingSet, sinc_qr, invVarianceWorkingSet);
 
 //    probability_per_bin.resize(maxBin);
 //    working_probability_per_bin.resize(maxBin);
 //    std::fill(working_probability_per_bin.begin(), working_probability_per_bin.end(), 0);
 //    std::fill(probability_per_bin.begin(), probability_per_bin.end(), 0);
+}
+
+void IofQData::makeScore() {
+    delete score;
+    score = new ReciprocalSpaceScore(scoreMaxBin, workingSet, sinc_qr, invVarianceWorkingSet);
+}
+
+void IofQData::rebindScore() {
+    if (score != nullptr) makeScore();
 }
 
 bool IofQData::validate(std::string message) {
@@ -589,7 +604,7 @@ void IofQData::truncateToQmax(float value){
 void IofQData::makeCVSet() {
 
     std::random_device rd;
-    std::mt19937 gen(rd());
+    std::mt19937 gen(seeded ? seed + 1 : rd());
 
     if (!cvSet.empty()){
         cvSet.clear();

@@ -17,7 +17,7 @@ class Atom {
     float volume, radii, g_radii;
 
     float threeOver4PI = 3.0/(4.0*M_PI);
-    float invSqrtPI3 = 1.0f/std::sqrtf(M_PI*M_PI*M_PI);
+    float invSqrtPI3 = 1.0f/std::sqrt((float)(M_PI*M_PI*M_PI));
 
 
 public:
