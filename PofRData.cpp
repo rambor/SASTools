@@ -26,7 +26,10 @@
  *  - BIN lines: the number of bins is taken from the file when it is floor or ceil of dmax*qmax/pi (SCATTER writes
  *    7 bins for dmax*qmax/pi = 7.04; the old code computed 8 and stopped with exit(0)); bin heights must be > 0
  *    (negative heights passed the old check). Errors throw std::invalid_argument instead of exit(0)
- *  - bin_width = pi/qmax, the width SCATTER bins with (BIN WIDTH (delta r)); it was dmax/(number of bins), which is
+ *  - bin width of the BIN lines = the header value "BIN WIDTH (delta r) :" when present (SCATTER writes the width it
+ *    binned with: pi/qmax in current versions, dmax/n in older files such as 30S_0p22_pr.dat, 243/19 = 12.79 A),
+ *    else pi/qmax.
+ *  - (history) bin_width = pi/qmax, the width SCATTER bins with (BIN WIDTH (delta r)); it was dmax/(number of bins), which is
  *    wider whenever dmax*qmax/pi is not a whole number (BSA_b_refined: 90.5/10 = 9.05 A instead of 8.4706 A) and
  *    put every distance in the wrong bin
  *  - without BIN lines: bins of width pi/qmax, ceil(dmax*qmax/pi) of them (bin_width was never set on this path); each bin is the exact
@@ -40,6 +43,7 @@
  */
 
 #include "PofRData.h"
+#include <cstdio>
 #include <regex>
 #include <sstream>
 #include <cctype>
@@ -106,6 +110,7 @@ void PofRData::extractData() {
     const std::regex raveFormat("<r>");
     const std::regex rgFormat("REAL Rg", ic);
     const std::regex errorFormat("ERROR", ic);
+    const std::regex binWidthFormat("BIN\\s+WIDTH\\s*\\(\\s*delta\\s+r\\s*\\)\\s*:", ic);   // width of the BIN lines
 
     std::string raw;
     while (std::getline(data, raw)) {
@@ -124,6 +129,8 @@ void PofRData::extractData() {
             x_data.push_back(x);
             y_data.push_back(y);
             sigma_data.push_back(s);
+        } else if (std::regex_search(line, binWidthFormat)) {
+            if (value_after_colon(tempLine, 6, v) && v > 0) this->header_bin_width = v;
         } else if (std::regex_search(line, dmaxFormat)) {
             if (value_after_colon(tempLine, 4, v)) this->dmax = v;
         } else if (std::regex_search(line, qmaxFormat)) {
@@ -149,7 +156,7 @@ void PofRData::convertUnits() {
     for (auto & r : x_data) r *= 10.0f;
     for (auto & p : y_data) p /= 10.0f;            // density per nm -> per Angstrom
     for (auto & s : sigma_data) s /= 10.0f;
-    dmax *= 10.0f; rg *= 10.0f; rg_sigma *= 10.0f; rave *= 10.0f; qmax /= 10.0f; qmin /= 10.0f; volume *= 1000.0f;
+    dmax *= 10.0f; header_bin_width *= 10.0f; rg *= 10.0f; rg_sigma *= 10.0f; rave *= 10.0f; qmax /= 10.0f; qmin /= 10.0f; volume *= 1000.0f;
 }
 
 
@@ -170,7 +177,12 @@ void PofRData::calculateShannonInformation() {
         // print warning if they don't match?
 
         shannon_bins = n;
-        bin_width = (float)(M_PI/qmax);                // width SCATTER used for the BIN lines (BIN WIDTH (delta r))
+        // width SCATTER used for the BIN lines: the header value when given (older SCATTER binned with dmax/n), else pi/qmax
+        bin_width = header_bin_width > 0 ? header_bin_width : (float)(M_PI/qmax);
+        if (header_bin_width > 0 && std::fabs(header_bin_width*qmax/M_PI - 1.0) > 0.005)   // not the Shannon width
+            std::printf("  => WARNING %s: BIN WIDTH (delta r) %.4f is not pi/qmax (%.4f); binned by an older SCATTER (dmax/n?)."
+                        " The header width is used; reprocess with the current SCATTER\n",
+                        getFilename().c_str(), header_bin_width, M_PI/qmax);
         ns_dmax = shannon_bins*bin_width;              // distance covered by the bins
         normalizePrBins();
 

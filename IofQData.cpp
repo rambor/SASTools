@@ -49,14 +49,14 @@ void IofQData::extractData() {
 
     if (data.is_open()) {
 
-        boost::regex dataFormat("([0-9].[0-9]+[Ee][+-]?[0-9]+)|([0-9]+.[0-9]+)");
-        boost::regex volFormat("(volume)|(VOLUME)");
-        boost::regex rgFormat("reci rg", boost::regex::icase);
-        boost::regex errorFormat("ERROR", boost::regex::icase);
-        boost::regex qmaxFormat("(qmax)|(QMAX)", boost::regex::icase);
-        boost::regex dmaxFormat("(dmax)|(DMAX)", boost::regex::icase);
-        boost::regex izeroFormat("reci i\\(0\\)", boost::regex::icase);
-        boost::regex porodFormat("POROD", boost::regex::icase);
+        std::regex dataFormat("([0-9].[0-9]+[Ee][+-]?[0-9]+)|([0-9]+.[0-9]+)");
+        std::regex volFormat("(volume)|(VOLUME)");
+        std::regex rgFormat("reci rg", std::regex::icase);
+        std::regex errorFormat("ERROR", std::regex::icase);
+        std::regex qmaxFormat("(qmax)|(QMAX)", std::regex::icase);
+        std::regex dmaxFormat("(dmax)|(DMAX)", std::regex::icase);
+        std::regex izeroFormat("reci i\\(0\\)", std::regex::icase);
+        std::regex porodFormat("POROD", std::regex::icase);
 
         std::string line;
 
@@ -74,15 +74,15 @@ void IofQData::extractData() {
             }
 
             std::vector<std::string> tempLine;
-            boost::split(tempLine, line, boost::is_any_of("\t  "), boost::token_compress_on);
+            sastools::split(tempLine, line, "\t  ");
 
-            if ((line.c_str()[0] != '-') && (line.length() > 0 && boost::regex_search(tempLine.at(0), dataFormat)) && boost::regex_search(tempLine.at(1), dataFormat)  ) {
+            if ((line.c_str()[0] != '-') && (line.length() > 0 && std::regex_search(tempLine.at(0), dataFormat)) && std::regex_search(tempLine.at(1), dataFormat)  ) {
 
                 x_data.push_back(std::strtof(tempLine[0].c_str(), nullptr));
                 y_data.push_back(std::strtof(tempLine[1].c_str(), nullptr));
                 sigma_data.push_back(std::strtof(tempLine[2].c_str(), nullptr));
 
-                if ((tempLine.size() > 3) && boost::regex_search(tempLine.at(3), dataFormat)){ // assume fourth column is icalc from IFT
+                if ((tempLine.size() > 3) && std::regex_search(tempLine.at(3), dataFormat)){ // assume fourth column is icalc from IFT
                     y_calc.push_back(std::strtof(tempLine[3].c_str(), nullptr));
                 } else {
                     y_calc.emplace_back(y_data.back()); // use experimental value if no column
@@ -90,7 +90,7 @@ void IofQData::extractData() {
 
                 total_data_points++;
 
-            } else if (boost::regex_search(line, qmaxFormat)) {
+            } else if (std::regex_search(line, qmaxFormat)) {
 
                 int totalIn = tempLine.size();
                 for(int i=0; i<totalIn; i++){
@@ -100,7 +100,7 @@ void IofQData::extractData() {
                     }
                 }
 
-            } else if (boost::regex_search(line, dmaxFormat)) {
+            } else if (std::regex_search(line, dmaxFormat)) {
                int totalIn = tempLine.size();
                 for(int i=0; i<totalIn; i++){
                     if (tempLine[i] == ":") {
@@ -108,18 +108,18 @@ void IofQData::extractData() {
                         break;
                     }
                 }
-            } else if (boost::regex_search(line, volFormat)) {
+            } else if (std::regex_search(line, volFormat)) {
                 if (tempLine[3] == ":") {
                     this->volume = std::strtof(tempLine[4].c_str(), nullptr);
                 }
-            } else if (boost::regex_search(line, izeroFormat)) {
-                if (boost::regex_search(line, errorFormat)){
+            } else if (std::regex_search(line, izeroFormat)) {
+                if (std::regex_search(line, errorFormat)){
                     this->izero_sigma = std::strtof(tempLine[7].c_str(), nullptr);
                 } else {
                     this->izero = std::strtof(tempLine[5].c_str(), nullptr);
                 }
-            } else if (boost::regex_search(line, rgFormat)) {
-                if (boost::regex_search(line, errorFormat)){
+            } else if (std::regex_search(line, rgFormat)) {
+                if (std::regex_search(line, errorFormat)){
                     rg_sigma = std::strtof(tempLine[7].c_str(), nullptr);
                 } else {
                     rg = std::strtof(tempLine[5].c_str(), nullptr);

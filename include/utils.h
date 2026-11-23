@@ -21,14 +21,16 @@
 #include <vector>
 #include <string>
 #include <list>
-#include <boost/numeric/ublas/vector.hpp>
-#include <boost/numeric/ublas/io.hpp>
-#include <boost/regex.hpp>
-#include <boost/algorithm/string.hpp>
+#include <regex>
+#include <random>
+#include <set>
+#include <map>
+#include <chrono>
+#include <cstring>
+#include <iomanip>
+#include <algorithm>
 #include <numeric>
-#include <boost/random/uniform_real.hpp>
-#include <boost/random/variate_generator.hpp>
-#include <boost/generator_iterator.hpp>
+#include "StringTools.h"
 #include <sstream>
 #include "vector3.h"
 

@@ -8,8 +8,8 @@
 #include <string>
 #include <vector>
 #include <algorithm>
-#include <boost/algorithm/string/trim.hpp>
-#include <boost/regex.hpp>
+#include <regex>
+#include "StringTools.h"
 #include "Atom.h"
 
 class Residue {
@@ -73,7 +73,7 @@ public:
 
         // guess atom and add to residue and return newly made atom
         std::string tempAtom = std::string(atom_type);
-        boost::algorithm::trim(tempAtom);
+        sastools::trim(tempAtom);
 
         if (ifNitrogen(atom_type) || (tempAtom == "N") || (tempAtom == "N1") || (tempAtom == "N2") || (tempAtom == "N3") || (tempAtom == "N4") || (tempAtom == "N5") || (tempAtom == "N6") || (tempAtom == "N7") || (tempAtom == "N8") || (tempAtom == "N9")  ) {
                 atoms.emplace_back(Atom(tempAtom, 7, 108, 13.429));
@@ -130,46 +130,46 @@ public:
     // "C1D" return true, "NC" return false
     inline bool ifCarbon(std::string val){
 
-        boost::regex isCarbon("^[\\s1-9]?C['A-Z0-9]{0,3}"); // CA could be C alpha or Calcium
+        static const std::regex isCarbon("^[\\s1-9]?C['A-Z0-9]{0,3}"); // CA could be C alpha or Calcium
 
-        boost::regex notCalcium("CA "); // "CA ", in PDB calcium is " CA"
+        static const std::regex notCalcium("CA "); // "CA ", in PDB calcium is " CA"
 
-        boost::regex notCarbon("^(?![A-BD-Z])C");
+        static const std::regex notCarbon("^(?![A-BD-Z])C");
 
-        // boost::regex ifHydrogen("^[ ]?H['A-GI-Z0-9]['A-GI-Z0-9]?"); // match any character
-        return  (boost::regex_match(val, isCarbon)) && !boost::regex_match(val, notCarbon) && !boost::regex_match(val, notCalcium);
+        // std::regex ifHydrogen("^[ ]?H['A-GI-Z0-9]['A-GI-Z0-9]?"); // match any character
+        return  (std::regex_match(val, isCarbon)) && !std::regex_match(val, notCarbon) && !std::regex_match(val, notCalcium);
     }
 
     inline bool ifMethyleneCarbon(std::string val){
-        boost::regex ifCarbon("^[0-9]+?C['A-Z0-9]?+");
-        // boost::regex ifHydrogen("^[ ]?H['A-GI-Z0-9]['A-GI-Z0-9]?"); // match any character
-        return  (boost::regex_match(val, ifCarbon));
+        static const std::regex ifCarbon("^[0-9]+?C['A-Z0-9]?");
+        // std::regex ifHydrogen("^[ ]?H['A-GI-Z0-9]['A-GI-Z0-9]?"); // match any character
+        return  (std::regex_match(val, ifCarbon));
     }
 
     inline bool ifNitrogen(std::string val){
-        boost::regex ifAtom("^[ ]?N['A-Z0-9]?+");
-        return  (boost::regex_search(val, ifAtom));
+        static const std::regex ifAtom("^[ ]?N['A-Z0-9]?");
+        return  (std::regex_search(val, ifAtom));
     }
 
     inline bool ifOxygen(std::string val){
-        boost::regex ifAtom("^[ ]?O['A-Z0-9]?+");
-        return  (boost::regex_search(val, ifAtom));
+        static const std::regex ifAtom("^[ ]?O['A-Z0-9]?");
+        return  (std::regex_search(val, ifAtom));
     }
 
 
     inline bool ifSulfur(std::string val){
-        boost::regex ifAtom("^[ ]?S[0-9]?+");
-        return  (boost::regex_search(val, ifAtom));
+        static const std::regex ifAtom("^[ ]?S[0-9]?");
+        return  (std::regex_search(val, ifAtom));
     }
 
     inline bool ifIron(std::string val){
-        boost::regex ifAtom("^[ ]?FE[0-9]?+");
-        return  (boost::regex_search(val, ifAtom));
+        static const std::regex ifAtom("^[ ]?FE[0-9]?");
+        return  (std::regex_search(val, ifAtom));
     }
 
     inline bool ifBridgingOxygen(std::string val){
-        boost::regex ifAtom("^[ 0-9]+?O['0-9]?");
-        return  (boost::regex_search(val, ifAtom));
+        static const std::regex ifAtom("^[ 0-9]+?O['0-9]?");
+        return  (std::regex_search(val, ifAtom));
     }
 };
 

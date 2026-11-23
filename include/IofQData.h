@@ -30,10 +30,8 @@
 
 #include <stdexcept>
 #include <fstream>
-#include <boost/regex.hpp>
-#include <boost/foreach.hpp>
-#include <boost/filesystem.hpp>
-#include <boost/algorithm/string.hpp>
+#include <regex>
+#include "StringTools.h"
 
 class IofQData : public DataBase {
 

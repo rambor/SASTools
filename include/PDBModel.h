@@ -18,10 +18,8 @@
 #include "FileClass.h"
 #include "vector3.h"
 #include "Model.h"
-#include <boost/regex.hpp>
-#include <boost/filesystem.hpp>
-#include <boost/algorithm/string.hpp>
-#include <boost/lexical_cast.hpp>
+#include <regex>
+#include "StringTools.h"
 #include "utils.h"
 
 class PDBModel : public Model {
@@ -268,6 +266,9 @@ public:
 
     vector3 getLowerBoundVector(){ return low_vec;}
     vector3 getUpperBoundVector(){ return high_vec;}
+
+    void setAtomDescription(unsigned int i, int atomicNumber, int asfNumber, float vol);
+    void patchTermini();
 };
 
 

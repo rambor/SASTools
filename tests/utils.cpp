@@ -47,12 +47,12 @@ TEST(UtilsTest, testConversionOfOxygenToAtomicNumberFromProtein){
     //
     unsigned int fileLength = 0;
 
-    boost::regex pdbStart("ATOM");
-    boost::regex hetatm("HETATM");
-    boost::regex wat("HOH");
-    boost::regex pdbX("-*[0-9]+.[0-9]+");
-    boost::regex numberFormat("[0-9]+.[0-9]+");
-    boost::regex ifHydrogen("H[A-Z]+");
+    std::regex pdbStart("ATOM");
+    std::regex hetatm("HETATM");
+    std::regex wat("HOH");
+    std::regex pdbX("-*[0-9]+.[0-9]+");
+    std::regex numberFormat("[0-9]+.[0-9]+");
+    std::regex ifHydrogen("H[A-Z]+");
 
     printf("%34s :: %s\n", "READING PDB FILE",proteinFile.getFullPath().c_str());
     std::string atomType;
@@ -63,7 +63,7 @@ TEST(UtilsTest, testConversionOfOxygenToAtomicNumberFromProtein){
             getline(scxFile, line); //this function grabs a line and moves to next line in file
             // string::substring(position,length)
             // Check if line starts with ATOM or HETATM and exclude hydrogens
-            if ((line.length() > 50 && (boost::regex_search(line.substr(0, 6), pdbStart) || boost::regex_search(line.substr(0, 6), hetatm)) && !boost::regex_search(line.substr(17,3), wat)) && boost::regex_search(line.substr(31,8),pdbX) && !boost::regex_search(line.substr(12,4), ifHydrogen)) {
+            if ((line.length() > 50 && (std::regex_search(line.substr(0, 6), pdbStart) || std::regex_search(line.substr(0, 6), hetatm)) && !std::regex_search(line.substr(17,3), wat)) && std::regex_search(line.substr(31,8),pdbX) && !std::regex_search(line.substr(12,4), ifHydrogen)) {
 
                 //Atom type taken from rows 13-16 needs to be converted to the actual atom, e.g., CB1 is C
                 atomType = line.substr(12,4);// needs to be this way until atomic numbers are assigned
@@ -111,12 +111,12 @@ TEST(UtilsTest, testConversionOfOxygenToAtomicNumberFromRNA){
     //
     unsigned int fileLength = 0;
 
-    boost::regex pdbStart("ATOM");
-    boost::regex hetatm("HETATM");
-    boost::regex wat("HOH");
-    boost::regex pdbX("-*[0-9]+.[0-9]+");
-    boost::regex numberFormat("[0-9]+.[0-9]+");
-    boost::regex ifHydrogen("H[A-Z]+");
+    std::regex pdbStart("ATOM");
+    std::regex hetatm("HETATM");
+    std::regex wat("HOH");
+    std::regex pdbX("-*[0-9]+.[0-9]+");
+    std::regex numberFormat("[0-9]+.[0-9]+");
+    std::regex ifHydrogen("H[A-Z]+");
 
     printf("%34s :: %s\n", "READING PDB FILE",proteinFile.getFullPath().c_str());
     std::string atomType;
@@ -127,7 +127,7 @@ TEST(UtilsTest, testConversionOfOxygenToAtomicNumberFromRNA){
             getline(scxFile, line); //this function grabs a line and moves to next line in file
             // string::substring(position,length)
             // Check if line starts with ATOM or HETATM and exclude hydrogens
-            if ((line.length() > 50 && (boost::regex_search(line.substr(0, 6), pdbStart) || boost::regex_search(line.substr(0, 6), hetatm)) && !boost::regex_search(line.substr(17,3), wat)) && boost::regex_search(line.substr(31,8),pdbX) && !boost::regex_search(line.substr(12,4), ifHydrogen)) {
+            if ((line.length() > 50 && (std::regex_search(line.substr(0, 6), pdbStart) || std::regex_search(line.substr(0, 6), hetatm)) && !std::regex_search(line.substr(17,3), wat)) && std::regex_search(line.substr(31,8),pdbX) && !std::regex_search(line.substr(12,4), ifHydrogen)) {
                 //Atom type taken from rows 13-16 needs to be converted to the actual atom, e.g., CB1 is C
                 atomType = line.substr(12,4);// needs to be this way until atomic numbers are assigned
                 // residue name, three letter for protein, two for nucleic acids

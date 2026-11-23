@@ -19,10 +19,10 @@
 
 using namespace std;
 
-static const boost::regex columnAtomBranch("([1-9PABGDEZH]|\\s)");
-static const boost::regex columnNumBranch("([1-9])");
-static const boost::regex columnOxygenBranch("([ABGDENXH])");
-static const boost::regex isWater("HOH");
+static const std::regex columnAtomBranch("([1-9PABGDEZH]|\\s)");
+static const std::regex columnNumBranch("([1-9])");
+static const std::regex columnOxygenBranch("([ABGDENXH])");
+static const std::regex isWater("HOH");
 
 // random generator function:
 ptrdiff_t myrandom (ptrdiff_t i) { return rand()%i;}
@@ -87,7 +87,8 @@ void sub_select(std::vector <float> & qvalues, std::vector<std::vector <float> >
         atq=atq+select;
 
         // randomly select from tempselected and put into selectedQ
-        random_shuffle( &tempselected[0], &tempselected[select - 1], p_myrandom );
+        // std::random_shuffle (removed in C++17) with the same swaps: element i swaps with one of [first, i]
+        for (int i = 1; i < select - 1; i++) std::swap(tempselected[i], tempselected[p_myrandom(i + 1)]);
 
         select = 0;
         // grab required elements per bin
@@ -386,9 +387,9 @@ void waterLattice(
     std::vector<float> wVy(wyArr, wyArr+numberOfWaters);
     std::vector<float> wVz(wzArr, wzArr+numberOfWaters);
 
-    transform (wVx.begin(), wVx.end(), wVx.begin(), std::bind2nd( std::plus<double>(), 7.2)); //shift box such that the corner is (0,0,0)
-    transform (wVy.begin(), wVy.end(), wVy.begin(), std::bind2nd( std::plus<double>(), 7.2));
-    transform (wVz.begin(), wVz.end(), wVz.begin(), std::bind2nd( std::plus<double>(), 7.2));
+    transform (wVx.begin(), wVx.end(), wVx.begin(), [](double v){ return v + 7.2; }); //shift box such that the corner is (0,0,0)
+    transform (wVy.begin(), wVy.end(), wVy.begin(), [](double v){ return v + 7.2; });
+    transform (wVz.begin(), wVz.end(), wVz.begin(), [](double v){ return v + 7.2; });
 
     std::vector<float> tempVh_x(0); // temp - holds the atom coordinates that correspond to the working (h, k, l)
     std::vector<float> tempVk_y(0);
@@ -482,8 +483,8 @@ void waterLattice(
 float assignOccupancy ( std::string * neighboringAtom, std::string * neighboringResi){
     float occupancy = 0;
     string atom, residue;
-//	boost::algorithm::trim(*neighboringAtom);
-//	boost::algorithm::trim(*neighboringResi);
+//	sastools::trim(*neighboringAtom);
+//	sastools::trim(*neighboringResi);
 
     //RNA bases
     if ((*neighboringResi == "rA")||(*neighboringResi == "rG") || (*neighboringResi == "rC") || (*neighboringResi == "rU") || \
@@ -1171,65 +1172,65 @@ unsigned int convertToAtomicNumber (const std::string atomType, const std::strin
         atomicNumber = 7;
     } else if (isspace(atomType[0]) && (atomType[1] == 'O') || ( resiName == "HOH" && atomType[1] == 'O')) {
         atomicNumber = 8;
-    } else if (isspace(atomType[0]) && (atomType[1] == 'P') && boost::regex_match(branch, columnAtomBranch) ) {
+    } else if (isspace(atomType[0]) && (atomType[1] == 'P') && std::regex_match(branch, columnAtomBranch) ) {
         atomicNumber = 15;
-    } else if (isspace(atomType[0]) && (atomType[1] == 'S') && boost::regex_match(branch, columnAtomBranch) ) {
+    } else if (isspace(atomType[0]) && (atomType[1] == 'S') && std::regex_match(branch, columnAtomBranch) ) {
         atomicNumber = 16;
-    } else if (isspace(atomType[0]) && (atomType[1] == 'H') && boost::regex_match(branch, columnAtomBranch) ) {
+    } else if (isspace(atomType[0]) && (atomType[1] == 'H') && std::regex_match(branch, columnAtomBranch) ) {
         atomicNumber = 1;
-    } else if (!isspace(atomType[0]) && (atomType[0] == 'H') && boost::regex_match(branch, columnNumBranch) ) {
+    } else if (!isspace(atomType[0]) && (atomType[0] == 'H') && std::regex_match(branch, columnNumBranch) ) {
         atomicNumber = 1;
-    } else if (!isspace(atomType[0]) && (atomType[0] == 'H') && (boost::regex_match(string (1,atomType[1]), columnNumBranch) || (atomType[1] == 'O') )) {
+    } else if (!isspace(atomType[0]) && (atomType[0] == 'H') && (std::regex_match(string (1,atomType[1]), columnNumBranch) || (atomType[1] == 'O') )) {
         atomicNumber = 1;
-    } else if (isspace(atomType[0]) && (atomType[1] == 'H') && (boost::regex_match(string (1,atomType[2]), columnNumBranch) || (atomType[2] == 'O') )) {
+    } else if (isspace(atomType[0]) && (atomType[1] == 'H') && (std::regex_match(string (1,atomType[2]), columnNumBranch) || (atomType[2] == 'O') )) {
         atomicNumber = 1;
-    } else if ((atomType[0] == 'H') && (atomType[1] == 'E') &&  boost::regex_match(branch, columnAtomBranch) ) {
+    } else if ((atomType[0] == 'H') && (atomType[1] == 'E') &&  std::regex_match(branch, columnAtomBranch) ) {
         atomicNumber = 2;
-    } else if ((atomType[0] == 'L') && (atomType[1] == 'I') &&  boost::regex_match(branch, columnAtomBranch) ) {
+    } else if ((atomType[0] == 'L') && (atomType[1] == 'I') &&  std::regex_match(branch, columnAtomBranch) ) {
         atomicNumber = 3;
-    } else if ((atomType[0] == 'B') && (atomType[1] == 'E') &&  boost::regex_match(branch, columnAtomBranch) ) {
+    } else if ((atomType[0] == 'B') && (atomType[1] == 'E') &&  std::regex_match(branch, columnAtomBranch) ) {
         atomicNumber = 4;
-    } else if (isspace(atomType[0]) && (atomType[1] == 'B') && boost::regex_match(branch, columnAtomBranch) ) {
+    } else if (isspace(atomType[0]) && (atomType[1] == 'B') && std::regex_match(branch, columnAtomBranch) ) {
         atomicNumber = 5;
-    } else if (isspace(atomType[0]) && (atomType[1] == 'F') && boost::regex_match(branch, columnAtomBranch) ) {
+    } else if (isspace(atomType[0]) && (atomType[1] == 'F') && std::regex_match(branch, columnAtomBranch) ) {
         atomicNumber = 9;
-    } else if ((atomType[0] == 'N') && (atomType[1] == 'E') &&  boost::regex_match(branch, columnAtomBranch) ) {
+    } else if ((atomType[0] == 'N') && (atomType[1] == 'E') &&  std::regex_match(branch, columnAtomBranch) ) {
         atomicNumber = 10;
-    } else if ((atomType[0] == 'N') && (atomType[1] == 'A') &&  boost::regex_match(branch, columnAtomBranch) ) {
+    } else if ((atomType[0] == 'N') && (atomType[1] == 'A') &&  std::regex_match(branch, columnAtomBranch) ) {
         atomicNumber = 11;
-    } else if ((atomType[0] == 'M') && (atomType[1] == 'G') &&  boost::regex_match(branch, columnAtomBranch) ) { //Mg
+    } else if ((atomType[0] == 'M') && (atomType[1] == 'G') &&  std::regex_match(branch, columnAtomBranch) ) { //Mg
         atomicNumber = 12;
-    } else if ((atomType[0] == 'A') && (atomType[1] == 'L') &&  boost::regex_match(branch, columnAtomBranch) ) {
+    } else if ((atomType[0] == 'A') && (atomType[1] == 'L') &&  std::regex_match(branch, columnAtomBranch) ) {
         atomicNumber = 13;
-    } else if ((atomType[0] == 'S') && (atomType[1] == 'I') &&  boost::regex_match(branch, columnAtomBranch) ) {
+    } else if ((atomType[0] == 'S') && (atomType[1] == 'I') &&  std::regex_match(branch, columnAtomBranch) ) {
         atomicNumber = 14;
-    } else if ((atomType[0] == 'C') && (atomType[1] == 'L') &&  boost::regex_match(branch, columnAtomBranch) ) {
+    } else if ((atomType[0] == 'C') && (atomType[1] == 'L') &&  std::regex_match(branch, columnAtomBranch) ) {
         atomicNumber = 17;
-    } else if ((atomType[0] == 'A') && (atomType[1] == 'R') &&  boost::regex_match(branch, columnAtomBranch) ) {
+    } else if ((atomType[0] == 'A') && (atomType[1] == 'R') &&  std::regex_match(branch, columnAtomBranch) ) {
         atomicNumber = 18;
-    } else if (isspace(atomType[0]) && (atomType[1] == 'K') && boost::regex_match(branch, columnAtomBranch) ) {	// K
+    } else if (isspace(atomType[0]) && (atomType[1] == 'K') && std::regex_match(branch, columnAtomBranch) ) {	// K
         atomicNumber = 19;
-    } else if ((atomType[0] == 'C') && (atomType[1] == 'A') &&  boost::regex_match(branch, columnAtomBranch) ) { // Ca
+    } else if ((atomType[0] == 'C') && (atomType[1] == 'A') &&  std::regex_match(branch, columnAtomBranch) ) { // Ca
         atomicNumber = 20;
-    } else if ((atomType[0] == 'M') && (atomType[1] == 'N') &&  boost::regex_match(branch, columnAtomBranch) ) { // Mn
+    } else if ((atomType[0] == 'M') && (atomType[1] == 'N') &&  std::regex_match(branch, columnAtomBranch) ) { // Mn
         atomicNumber = 25;
-    } else if ((atomType[0] == 'F') && (atomType[1] == 'E') &&  boost::regex_match(branch, columnAtomBranch) ) { // Fe
+    } else if ((atomType[0] == 'F') && (atomType[1] == 'E') &&  std::regex_match(branch, columnAtomBranch) ) { // Fe
         atomicNumber = 26;
-    } else if ((atomType[0] == 'C') && (atomType[1] == 'O') &&  boost::regex_match(branch, columnAtomBranch) ) { // Co
+    } else if ((atomType[0] == 'C') && (atomType[1] == 'O') &&  std::regex_match(branch, columnAtomBranch) ) { // Co
         atomicNumber = 27;
-    } else if ((atomType[0] == 'N') && (atomType[1] == 'I') &&  boost::regex_match(branch, columnAtomBranch) ) { // Ni
+    } else if ((atomType[0] == 'N') && (atomType[1] == 'I') &&  std::regex_match(branch, columnAtomBranch) ) { // Ni
         atomicNumber = 28;
-    } else if ((atomType[0] == 'C') && (atomType[1] == 'U') &&  boost::regex_match(branch, columnAtomBranch) ) { // Cu
+    } else if ((atomType[0] == 'C') && (atomType[1] == 'U') &&  std::regex_match(branch, columnAtomBranch) ) { // Cu
         atomicNumber = 29;
-    } else if ((atomType[0] == 'Z') && (atomType[1] == 'N') &&  boost::regex_match(branch, columnAtomBranch) ) { // Zn
+    } else if ((atomType[0] == 'Z') && (atomType[1] == 'N') &&  std::regex_match(branch, columnAtomBranch) ) { // Zn
         atomicNumber = 30;
     } else if ((atomType[0] == 'S') && (atomType[1] == 'E')  ) { // SE
         atomicNumber = 34;
-    } else if (isspace(atomType[0]) && (atomType[1] == 'O') && boost::regex_match(branch, columnAtomBranch) && (boost::regex_match(resiName, isWater)) ) { //HOH water
+    } else if (isspace(atomType[0]) && (atomType[1] == 'O') && std::regex_match(branch, columnAtomBranch) && (std::regex_match(resiName, isWater)) ) { //HOH water
         atomicNumber = 99;
     } else {
         auto tempString = std::string(atomType);
-        boost::algorithm::trim(tempString);
+        sastools::trim(tempString);
         if (tempString.length() == 1) {
             if (tempString[0] == 'N'){
                 atomicNumber=7;
@@ -1244,14 +1245,14 @@ unsigned int convertToAtomicNumber (const std::string atomType, const std::strin
             }
         } else {
             std::string second(1,tempString[1]);
-            boost::algorithm::trim(second);
-            if (atomType[0] == 'N' && boost::regex_match(second, columnNumBranch) ){
+            sastools::trim(second);
+            if (atomType[0] == 'N' && std::regex_match(second, columnNumBranch) ){
                 cout << "\n INCORRECT FORMAT => Guessing Atom => NITROGEN(7)   C1=> " << atomType[0] << " C2=> " << atomType[1] << " C3=> " << atomType[2] << " C4=> " << atomType[3] << endl;
                 atomicNumber =7;
-            } else if (atomType[0] == 'C' && boost::regex_match(second, columnNumBranch) ){
+            } else if (atomType[0] == 'C' && std::regex_match(second, columnNumBranch) ){
                 cout << "\n INCORRECT FORMAT => Guessing Atom => CARBON(6)     C1=> " << atomType[0] << " C2=> " << atomType[1] << " C3=> " << atomType[2] << " C4=> " << atomType[3] << endl;
                 atomicNumber =6;
-            } else if ((atomType[0] == 'O' && boost::regex_match(second, columnNumBranch)) || (atomType[0] == 'O' && atomType[1] == 'P')){
+            } else if ((atomType[0] == 'O' && std::regex_match(second, columnNumBranch)) || (atomType[0] == 'O' && atomType[1] == 'P')){
                 cout << "\n INCORRECT FORMAT => Guessing Atom => OXYGEN(8)     C1=> " << atomType[0] << " C2=> " << atomType[1] << " C3=> " << atomType[2] << " C4=> " << atomType[3] << endl;
                 atomicNumber =8;
             } else if (atomType[0] == 'P'){
@@ -1538,9 +1539,9 @@ bool validatePofRFile(std::string filename){
     std::ifstream data (filename, std::ifstream::in);
     if (data.is_open()) {
 
-        boost::regex format("REAL SPACE");
-        boost::regex coefficient("BIN_[0-9]+", boost::regex::icase);
-        boost::regex remarkFormat("REMARK");
+        std::regex format("REAL SPACE");
+        std::regex coefficient("BIN_[0-9]+", std::regex::icase);
+        std::regex remarkFormat("REMARK");
 
         std::string line;
 
@@ -1551,18 +1552,18 @@ bool validatePofRFile(std::string filename){
              * require at least two columns (1: q, 2: I(q), 3: sigma)
              */
             if (isspace(line[0])){
-                line.erase(line.begin(), std::find_if(line.begin(), line.end(), std::not1(std::ptr_fun<int, int>(std::isspace))));
+                line.erase(line.begin(), std::find_if(line.begin(), line.end(), [](unsigned char c){ return !std::isspace(c); }));
             }
 
             std::vector<std::string> tempLine;
-            boost::split(tempLine, line, boost::is_any_of("\t  "), boost::token_compress_on);
+            sastools::split(tempLine, line, "\t  ");
 
-            if(boost::regex_search(line, format)){
+            if(std::regex_search(line, format)){
                 logger("READING PR VALUES", filename);
                 hasRealSpace = true;
             }
 
-            if(boost::regex_search(tempLine.at(0), remarkFormat) && boost::regex_search(line, coefficient) ){
+            if(std::regex_search(tempLine.at(0), remarkFormat) && std::regex_search(line, coefficient) ){
                 hasBins = true;
             }
 

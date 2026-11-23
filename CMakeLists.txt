@@ -22,15 +22,7 @@ endif()
 project(SASTools LANGUAGES ${SASTools_LANGUAGES} VERSION ${SASTools_VERSION})
 
 SET(BUILD_SHARED_LIBS OFF)
-#
-# BOOST SECTION
-#
-# set Boost directory
-set(Boost_USE_STATIC_LIBS ON)
-set(Boost_USE_STATIC_RUNTIME ON)
-
-# if you have boost in a non-standard directory, like you home directory, set the following:
-# from command line for cmake, pass in -DBOOSTROOT=/your/directoryToBoost
+# No Boost: standard C++17 only (std::regex, std::filesystem, StringTools.h)
 MESSAGE("CMAKE INSTALL LIBDIR ${CMAKE_INSTALL_LIBDIR}")
 MESSAGE("PROJECT SOURCE DIR ${PROJECT_SOURCE_DIR}")
 
@@ -39,39 +31,12 @@ MESSAGE("CMAKE INSTALL PREFIX ${CMAKE_INSTALL_PREFIX}") # default is /usr/local
 
 set(header_path "${PROJECT_SOURCE_DIR}/include")
 
-# Boost root variable set as environment variable in CLION Preferences
-find_package(Boost REQUIRED NO_MODULE)
-
-MESSAGE("** BOOST ROOT => ${BOOSTROOT}")
-
-#SET(BOOST_ROOT ${BOOSTROOT})
-#SET(BOOST_LIBRARYDIR ${BOOSTROOT}/lib)
-#SET(BOOST_INCLUDEDIR ${BOOSTROOT}/stage)
-SET(BOOST_INCLUDEDIR ${BOOSTROOT})
-#include_directories(${BOOST_INCLUDEDIR})
-include_directories(${Boost_INCLUDE_DIRS})
-
-set(BOOST_FILESYSTEM ${BOOST_INCLUDEDIR}/lib/libboost_filesystem.a )
-set(BOOST_PO ${BOOST_INCLUDEDIR}/lib/libboost_program_options.a )
-set(BOOST_RANDOM ${BOOST_INCLUDEDIR}/lib/libboost_random.a )
-set(BOOST_REGEX ${BOOST_INCLUDEDIR}/lib/libboost_regex.a )
-set(BOOST_SYSTEM ${BOOST_INCLUDEDIR}/lib/libboost_system.a )
-
-#MESSAGE("** BOOST INCLUDE => ${BOOST_INCLUDEDIR}")
-MESSAGE("** BOOST SPECIAL => ${BOOST_FILESYSTEM}")
-MESSAGE("** BOOST SPECIAL => ${BOOST_PO}")
-MESSAGE("** BOOST SPECIAL => ${BOOST_RANDOM}")
-MESSAGE("** BOOST SPECIAL => ${BOOST_REGEX}")
-MESSAGE("** BOOST SPECIAL => ${BOOST_SYSTEM}")
-MESSAGE("** BOOST INCLUDE DIRECTORY: ${Boost_INCLUDE_DIR}")
-
-
 set(HEADERS ${header_path}/Model.h
         ${header_path}/Atom.h
         ${header_path}/Residue.h
         ${header_path}/Bead.h
         ${header_path}/Coords.h
-        ${header_path}/Database.h
+        ${header_path}/DataBase.h
         ${header_path}/Datum.h
         ${header_path}/FileClass.h
         ${header_path}/Model.h
@@ -85,6 +50,7 @@ set(HEADERS ${header_path}/Model.h
         ${header_path}/svd3.h
         ${header_path}/vector3.h
         ${header_path}/Residues.h
+        ${header_path}/StringTools.h
         )
 
 set(SOURCE_FILES PDBModel.cpp FileClass.cpp utils.cpp Coords.cpp IofQData.cpp PofRData.cpp Residues.cpp)
@@ -92,12 +58,13 @@ set(SOURCE_FILES PDBModel.cpp FileClass.cpp utils.cpp Coords.cpp IofQData.cpp Po
 include(include/simde-no-tests-master/CMakeLists.txt)
 
 add_library(SASTools STATIC ${SOURCE_FILES} ${HEADERS})
+if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 9.1)
+    target_link_libraries(SASTools PUBLIC stdc++fs)   # std::filesystem in a separate library before gcc 9.1
+endif()
 
 set_target_properties(SASTools PROPERTIES PUBLIC_HEADERS "${HEADERS}"
         VERSION ${SASTools_VERSION}
         )
-
-target_link_libraries(SASTools PRIVATE ${BOOST_FILESYSTEM} ${BOOST_PO} ${BOOST_RANDOM} ${BOOST_REGEX} ${BOOST_SYSTEM})
 
 target_include_directories(SASTools
         PUBLIC

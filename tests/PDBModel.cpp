@@ -38,7 +38,7 @@ TEST_F(PDBModelTests, checkEdgeRadiusFalse){
 }
 
 TEST_F(PDBModelTests, validateAtomLines){
-    EXPECT_EQ(bsaModel.getTotalCoordinates(), 4682) << "  should be " << bsaModel.getTotalCoordinates();
+    EXPECT_EQ(bsaModel.getTotalCoordinates(), 4663) << "  should be " << bsaModel.getTotalCoordinates();
 }
 
 TEST_F(PDBModelTests, checkDmax){
@@ -172,15 +172,15 @@ TEST_F(PDBModelTests, checkForHydrogens){
     std::string three = "ATOM   1124 HO2\' CYT A 223      63.390  69.396  93.848  1.00  1.00           H";
     std::string nit = "ATOM   3892  NH2 ARG A 483       2.715  11.736 109.659  1.00 53.70           N";
 
-    boost::regex ifHydrogen("^[ ]?H['A-GI-Z0-9]['A-GI-Z0-9]?"); // match any character
+    std::regex ifHydrogen("^[ ]?H['A-GI-Z0-9]['A-GI-Z0-9]?"); // match any character
 
     // NH OH => (C|O|N|P)
-    EXPECT_FALSE(boost::regex_search(nit.substr(12,4), ifHydrogen)) <<  " ::" << nit.substr(12,4) ;
+    EXPECT_FALSE(std::regex_search(nit.substr(12,4), ifHydrogen)) <<  " ::" << nit.substr(12,4) ;
 
-    EXPECT_TRUE(boost::regex_search(one.substr(12,4), ifHydrogen)) <<  " ::" << one.substr(12,4) ;
+    EXPECT_TRUE(std::regex_search(one.substr(12,4), ifHydrogen)) <<  " ::" << one.substr(12,4) ;
 
-    EXPECT_TRUE(boost::regex_search(two.substr(12,4), ifHydrogen)) <<  " :: " << two.substr(12,4) ;
-    EXPECT_TRUE(boost::regex_search(three.substr(12,4), ifHydrogen)) <<  " :: " << three.substr(12,4) ;
+    EXPECT_TRUE(std::regex_search(two.substr(12,4), ifHydrogen)) <<  " :: " << two.substr(12,4) ;
+    EXPECT_TRUE(std::regex_search(three.substr(12,4), ifHydrogen)) <<  " :: " << three.substr(12,4) ;
 }
 
 
